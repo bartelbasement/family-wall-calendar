@@ -17,6 +17,8 @@ var CONFIG_DEFAULTS_ = {
   windowDays: 30,
   // Google calendars to read: [{ id, defaultPerson? }]. Set in Private.js.
   calendars: [],
+  // Merge tuning. ignoreWords: extra words to drop from titles (e.g. school labels).
+  merge: { maxMinutes: 90, minJaccard: 0.5, ignoreWords: [], synonyms: [] },
   // code: S/R/C kids, M/D/P adults, F family (fallback). Names come from Private.js.
   people: []
 };
@@ -29,6 +31,7 @@ function getConfig_() {
   if (priv.changeWindowHours) cfg.changeWindowHours = priv.changeWindowHours;
   if (priv.windowDays) cfg.windowDays = priv.windowDays;
   if (priv.calendars) cfg.calendars = priv.calendars;
+  if (priv.merge) Object.keys(priv.merge).forEach(function (k) { cfg.merge[k] = priv.merge[k]; });
   if (!cfg.trello.boardId) throw new Error('Trello boardId is not configured (see Private.example.js)');
   return cfg;
 }
