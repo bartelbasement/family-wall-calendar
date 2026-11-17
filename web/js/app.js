@@ -76,7 +76,10 @@ function render() {
 
   $('#banner').innerHTML = bannerHtml(items, ui.filter);
   $('#now').innerHTML = nowHtml(items, ui.filter, ctx);
-  $('#week').innerHTML = weekHtml(items, ui.filter, ctx);
+  const wk = $('#week'), keep = wk.scrollLeft;
+  wk.innerHTML = weekHtml(items, ui.filter, ctx);
+  wk.scrollLeft = keep;
+  updateWeekHint();
   $('#todos').innerHTML = todosHtml(items, ui.filter, ctx);
   $('#chips').innerHTML = chipsHtml(snap.people || [], ui.filter);
 
@@ -102,6 +105,12 @@ function renderSheet(items, ctx) {
   scrim.hidden = false;
 }
 
+function updateWeekHint() {
+  const wk = $('#week');
+  $('#week-wrap').classList.toggle('at-end', wk.scrollLeft + wk.clientWidth >= wk.scrollWidth - 4);
+}
+$('#week').addEventListener('scroll', updateWeekHint, { passive: true });
+
 // ---------------------------------------------------------------- interaction
 document.addEventListener('pointerdown', () => { ui.lastTouch = Date.now(); }, { passive: true });
 
@@ -126,8 +135,9 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ui.sheet
 // Wall: drift back to the home state when nobody is using it.
 if (mode.kiosk) {
   setInterval(() => {
-    if (Date.now() - ui.lastTouch > IDLE_MS && (ui.sheet || ui.filter !== 'all')) {
+    if (Date.now() - ui.lastTouch > IDLE_MS && (ui.sheet || ui.filter !== 'all' || $('#week').scrollLeft > 0)) {
       ui.sheet = null; ui.filter = 'all'; render();
+      $('#week').scrollTo({ left: 0, behavior: 'smooth' });
     }
   }, 10e3);
 }

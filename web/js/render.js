@@ -4,6 +4,7 @@ import { now, ymd, todayYmd, addDays, timeLabel, clockLabel, dayLabel, longDateL
 const KIDS = ['S', 'R', 'C'];
 const ADULTS = ['M', 'D', 'P'];
 const WEEK_PILLS = 6;
+export const WEEK_DAYS = 14; // rendered; 4 visible at a time, swipe for more
 const NOW_ITEMS = 4;
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -124,7 +125,7 @@ function pillHtml(x, ctx, isPast) {
 export function weekHtml(items, filter, ctx) {
   const today = todayYmd(), tNow = now().getTime();
   const days = [];
-  for (let i = 0; i < 7; i++) days.push(addDays(today, i));
+  for (let i = 0; i < WEEK_DAYS; i++) days.push(addDays(today, i));
   return days.map((d) => {
     const all = eventsOn(items, d);
     const evs = all.filter((x) => visible(x, filter));

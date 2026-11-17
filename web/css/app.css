@@ -96,7 +96,18 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .now-more, .now-empty { font-size: 1.15rem; color: var(--muted); margin-top: .4rem; }
 
 /* ---------- Week grid ---------- */
-.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .35rem; min-height: 0; }
+.week-wrap { position: relative; min-height: 0; display: flex; }
+.week {
+  --days: 4; --gap: .45rem;
+  flex: 1; display: grid; grid-auto-flow: column; gap: var(--gap); min-height: 0;
+  grid-auto-columns: calc((100% - (var(--days) - 1) * var(--gap)) / var(--days));
+  overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none;
+}
+.week::-webkit-scrollbar { display: none; }
+.week .day { scroll-snap-align: start; }
+/* hint that more days are to the right */
+.week-wrap::after { content: '›'; position: absolute; right: -.15rem; top: 45%; font-size: 2rem; color: var(--muted); opacity: .55; pointer-events: none; }
+.week-wrap.at-end::after { content: none; }
 .day { display: flex; flex-direction: column; gap: .35rem; min-height: 0; overflow: hidden; background: var(--surface); border-radius: .7rem; padding: .4rem .35rem; }
 .day-h { display: grid; grid-template-columns: 1fr auto; align-items: start; padding: .15rem .3rem .3rem; border-radius: .5rem; width: 100%; }
 .day-h .dow { font-size: .8rem; font-weight: 700; letter-spacing: .08em; color: var(--muted); }
@@ -115,11 +126,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   border-radius: .25rem .5rem .5rem .25rem; padding: .3rem .4rem; position: relative;
 }
 .pill .row1 { display: flex; justify-content: space-between; align-items: center; gap: .2rem; min-height: 1.1rem; }
-.pill .tm { font-size: .78rem; font-weight: 700; opacity: .9; white-space: nowrap; }
+.pill .tm { font-size: .9rem; font-weight: 700; opacity: .9; white-space: nowrap; }
 .pill .chg { color: var(--bd-p); font-size: .8rem; margin-right: .15rem; }
 .pill .ti {
   display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
-  font-size: .9rem; font-weight: 600; line-height: 1.15; overflow-wrap: break-word; hyphens: auto;
+  font-size: 1.05rem; font-weight: 600; line-height: 1.18; overflow-wrap: break-word; hyphens: auto;
 }
 .pill .badges { font-size: .8rem; gap: .12rem; }
 .pill .badges.multi { margin-top: .2rem; flex-wrap: wrap; }
@@ -190,6 +201,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 /* ---------- Narrow screens (phone layout proper comes in M12b) ---------- */
 @media (max-width: 699px) {
+  .week-wrap::after { content: none; }
+  .week { grid-auto-flow: row; grid-auto-columns: auto; overflow: visible; }
   :root { font-size: 16px; }
   #app { height: auto; min-height: 100dvh; }
   .main { grid-template-columns: 1fr; }
