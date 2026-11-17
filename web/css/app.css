@@ -70,7 +70,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .banner:empty { display: none; }
 .banner .sep { opacity: .5; font-weight: 400; }
 
-.main { display: grid; grid-template-columns: minmax(0, 33fr) minmax(0, 67fr); gap: 1.1rem; min-height: 0; }
+.main { display: grid; grid-template-columns: minmax(0, 40fr) minmax(0, 60fr); gap: 1.1rem; min-height: 0; }
 
 /* ---------- Now column ---------- */
 .now { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
