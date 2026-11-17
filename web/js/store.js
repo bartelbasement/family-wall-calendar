@@ -12,8 +12,8 @@ function saveCached(snap) {
   try { localStorage.setItem(LS_KEY, JSON.stringify(snap)); } catch (e) { /* quota or blocked */ }
 }
 
-export function createStore({ intervalMs = 5 * 60 * 1000, onChange }) {
-  const state = { snap: loadCached(), error: null, failures: 0, lastAttempt: null };
+export function createStore({ intervalMs = 5 * 60 * 1000, onChange, demoUrl = null }) {
+  const state = { snap: demoUrl ? null : loadCached(), error: null, failures: 0, lastAttempt: null };
   let timer = null;
 
   const emit = () => onChange && onChange(state);
@@ -22,11 +22,19 @@ export function createStore({ intervalMs = 5 * 60 * 1000, onChange }) {
     clearTimeout(timer);
     state.lastAttempt = Date.now();
     try {
-      const snap = await apiGet('snapshot');
+      let snap;
+      if (demoUrl) {
+        const res = await fetch(demoUrl, { cache: 'no-store' });
+        if (!res.ok) throw new Error('demo_http_' + res.status);
+        snap = await res.json();
+        snap.updatedAt = new Date().toISOString(); // demo data is always "fresh"
+      } else {
+        snap = await apiGet('snapshot');
+      }
       state.snap = snap;
       state.error = null;
       state.failures = 0;
-      saveCached(snap);
+      if (!demoUrl) saveCached(snap);
     } catch (e) {
       state.error = e.message || String(e);
       state.failures += 1;

@@ -4,6 +4,16 @@
 
 const TZ = 'America/Vancouver';
 let fixedOffsetMin = null;
+let nowShiftMs = 0;
+
+/** Demo/testing: pretend the current time is `local` ("2026-11-18T14:30", Vancouver time). */
+export function setNow(local) {
+  const iso = /[zZ]|[+-]\d\d:\d\d$/.test(local) ? local : local + '-07:00';
+  const t = Date.parse(iso);
+  if (!Number.isNaN(t)) nowShiftMs = t - Date.now();
+}
+/** Current time (respects setNow). Use this instead of new Date() for "now". */
+export const now = () => new Date(Date.now() + nowShiftMs);
 
 function parseOffset(s) {
   const m = /^(?:GMT|UTC)?([+-])(\d{1,2}):?(\d{2})?$/.exec(String(s || '').trim());
@@ -25,7 +35,7 @@ function deviceOffsetMin(d) {
 export function calibrate(serverOffset) {
   const srv = parseOffset(serverOffset);
   if (srv === null) return { usingFixed: false };
-  const dev = deviceOffsetMin(new Date());
+  const dev = deviceOffsetMin(now());
   fixedOffsetMin = dev === srv ? null : srv;
   return { usingFixed: fixedOffsetMin !== null, device: dev, server: srv };
 }
@@ -48,7 +58,22 @@ export function parts(dateLike) {
 }
 
 export const ymd = (dateLike) => { const p = parts(dateLike); return `${p.y}-${pad(p.mo)}-${pad(p.d)}`; };
-export const todayYmd = () => ymd(new Date());
+export const todayYmd = () => ymd(now());
+
+/** "Wednesday, November 18" */
+export function longDateLabel(ymdStr) {
+  const [y, m, d] = ymdStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  return `${DAYS[dt.getUTCDay()]}, ${MONTHS[m - 1]} ${d}`;
+}
+
+/** Minutes since local midnight for an instant. */
+export function minuteOfDay(dateLike) {
+  const p = parts(dateLike);
+  return p.h * 60 + p.mi;
+}
 
 /** "7 am", "3:15 pm" */
 export function timeLabel(dateLike) {

@@ -4,85 +4,30 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
 <title>Family Calendar</title>
-<style>
-  :root { --bg:#fff; --surface:#F1EFE8; --text:#2C2C2A; --muted:#5F5E5A; --line:#D3D1C7;
-          --ok:#27500A; --warn-bg:#FAEEDA; --warn:#633806; --bad:#791F1F; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#1f1f1e; --surface:#2C2C2A; --text:#F1EFE8; --muted:#B4B2A9;
-          --line:#444441; --ok:#9FD36B; --warn-bg:#633806; --warn:#FAEEDA; --bad:#F09595; } }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--text);
-         font:18px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-         padding: 16px max(16px, env(safe-area-inset-right)) 32px max(16px, env(safe-area-inset-left)); }
-  header { display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; }
-  h1 { font-size:26px; margin:0; }
-  #stamp { font-size:15px; color:var(--muted); padding:2px 8px; border-radius:6px; }
-  #stamp.stale { background:var(--warn-bg); color:var(--warn); }
-  #note { font-size:14px; color:var(--muted); margin:6px 0 0; }
-  h2 { font-size:18px; margin:18px 0 6px; padding-bottom:4px; border-bottom:1px solid var(--line); }
-  .row { display:flex; gap:10px; padding:4px 0; align-items:baseline; }
-  .t { flex:0 0 76px; color:var(--muted); font-variant-numeric:tabular-nums; }
-  .who { flex:0 0 auto; font-size:13px; font-weight:600; background:var(--surface); border-radius:4px; padding:0 6px; }
-  .src { font-size:12px; color:var(--muted); }
-  .todo .t { color:var(--bad); }
-</style>
+<link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-<header><h1>Family Calendar</h1><span id="stamp">Loading…</span></header>
-<p id="note"></p>
-<main id="list"></main>
-<script type="module">
-  import { getKey } from './js/api.js';
-  import { createStore } from './js/store.js';
-  import { getMode } from './js/mode.js';
-  import { startKiosk } from './js/kiosk.js';
-  import { calibrate, timeLabel, clockLabel, dayLabel, todayYmd, addDays } from './js/time.js';
-
-  // Temporary M5 data view; the real wall/phone layouts arrive in M6/M12b.
-  const mode = getMode();
-  getKey(); // capture ?key= from the link on first open
-  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  let tzStatus = { usingFixed: false };
-
-  const store = createStore({ onChange: render });
-
-  function render(state) {
-    const stamp = document.getElementById('stamp');
-    const note = document.getElementById('note');
-    if (!state.snap) {
-      stamp.textContent = state.error ? 'Can’t reach server' : 'Loading…';
-      stamp.className = state.error ? 'stale' : '';
-      note.textContent = state.error === 'missing_key' ? 'Open this page with the family link (it contains the access key).' : '';
-      return;
-    }
-    tzStatus = calibrate(state.snap.tzOffset);
-    stamp.textContent = 'Updated ' + clockLabel(state.snap.updatedAt) + (state.error ? ' · offline' : '');
-    stamp.className = store.isStale() || state.error ? 'stale' : '';
-    note.textContent = [
-      `Mode: ${mode.setting} (${mode.layout}${mode.kiosk ? ', kiosk' : ''})`,
-      tzStatus.usingFixed ? 'Device time zone data is out of date; using server offset ' + state.snap.tzOffset : 'Time zone OK ' + state.snap.tzOffset,
-      state.snap.sourceErrors && state.snap.sourceErrors.length ? state.snap.sourceErrors.length + ' calendar error(s)' : ''
-    ].filter(Boolean).join(' · ');
-
-    const today = todayYmd(), until = addDays(today, 13);
-    const items = state.snap.items.filter((x) => x.date && x.date >= today && x.date <= until);
-    const byDay = {};
-    items.forEach((x) => { (byDay[x.date] = byDay[x.date] || []).push(x); });
-    document.getElementById('list').innerHTML = Object.keys(byDay).sort().map((d) =>
-      `<h2>${d === today ? 'Today · ' : ''}${dayLabel(d)}</h2>` + byDay[d].map((x) => `
-        <div class="row ${x.section === 'todo' ? 'todo' : ''}">
-          <span class="t">${x.section === 'todo' ? 'to-do' : x.display === 'icon' ? esc(x.icon) : x.allDay ? 'all day' : timeLabel(x.start)}</span>
-          <span class="who">${esc(x.people.join(' '))}</span>
-          <span>${esc(x.title)}${x.note ? ' — <i>' + esc(x.note) + '</i>' : ''}</span>
-          <span class="src">${x.source === 'both' ? '⇄' : x.source === 'trello' ? 'T' : ''}</span>
-        </div>`).join('')).join('');
-  }
-
-  store.start();
-  if (mode.kiosk) startKiosk(store);
-  setInterval(() => render(store.state), 60e3); // keep the stamp ageing
-</script>
+<div id="app">
+  <div id="banner" class="banner" role="status"></div>
+  <div class="main">
+    <section id="now" class="now" aria-label="Today"></section>
+    <section id="week" class="week" aria-label="Next 7 days"></section>
+  </div>
+  <div class="bottom">
+    <div id="todos" class="todos" aria-label="Open to-dos"></div>
+    <div class="side">
+      <div id="chips" class="chips" role="group" aria-label="Show"></div>
+      <span id="stamp" class="stamp"></span>
+    </div>
+  </div>
+</div>
+<div id="scrim" class="scrim" hidden></div>
+<div id="night" class="night" hidden></div>
+<script type="module" src="js/app.js"></script>
 </body>
 </html>

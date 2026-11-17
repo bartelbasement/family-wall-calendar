@@ -9,3 +9,6 @@ private/
 .DS_Store
 # Family-specific config (names, board ID); pushed by clasp, never committed
 api/src/Private.js
+
+# Local demo data with real names; never published
+web/demo/
