@@ -38,7 +38,9 @@ var GET_ACTIONS = {
   }
 };
 
-var POST_ACTIONS = {};
+var POST_ACTIONS = {
+  completeTodo: function (b) { return completeTodo_(b); }
+};
 
 function doGet(e) {
   var p = (e && e.parameter) || {};

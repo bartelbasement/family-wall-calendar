@@ -145,8 +145,9 @@ export function todosHtml(items, filter, ctx) {
   return `<span class="todos-h">To-do</span>` + todos.map((x) => {
     const overdue = x.date && x.date < today;
     const due = !x.date ? '' : overdue ? 'Overdue' : x.date === today ? 'Due today' : 'Due ' + dayLabel(x.date);
-    return `<button class="todo p-${bandCode(x.people)}" data-id="${esc(x.id)}">
-      <span class="box"></span>
+    const pending = ctx.pending && ctx.pending.has(x.id);
+    return `<button class="todo p-${bandCode(x.people)}${pending ? ' pending' : ''}" data-id="${esc(x.id)}">
+      <span class="box" data-complete="${esc(x.id)}" role="checkbox" aria-checked="${pending}" aria-label="Mark done">${pending ? '✓' : ''}</span>
       <span class="ti">${esc(x.title)}</span>
       <span class="due${overdue ? ' overdue' : ''}">${badges(x.people, ctx)} ${esc(due)}${x.change ? ` · <b class="flag-inline">${changeWord(x)}</b>` : ''}</span>
     </button>`;
@@ -186,6 +187,7 @@ export function itemSheetHtml(x, ctx, kiosk) {
     <h3>${esc(x.title)}</h3>
     <div class="who">${names}</div>
     <dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+    ${x.section === 'todo' && x.trelloId ? `<button class="done-btn" data-complete="${esc(x.id)}">✓ Mark done</button>` : ''}
     ${links ? `<div class="links">${links}</div>` : ''}
     <div class="src">From ${src}</div>
   </div>`;
@@ -202,6 +204,17 @@ export function daySheetHtml(items, day, filter, ctx) {
     <div class="day-list">${evs.map((x) => pillHtml(x, ctx, false)).join('') || '<p>Nothing scheduled.</p>'}</div>
     ${todos.length ? `<div class="now-h">Due this day</div><div class="day-list">${todos.map((x) =>
       `<button class="pill p-${bandCode(x.people)}" data-id="${esc(x.id)}"><span class="ti">☐ ${esc(x.title)}</span></button>`).join('')}</div>` : ''}
+    </div>`;
+}
+
+/** Undo toast for a to-do being completed. */
+export function toastHtml(t) {
+  if (!t) return '';
+  if (t.kind === 'error') return `<div class="toast err" role="alert">${esc(t.text)}</div>`;
+  return `<div class="toast" role="status">
+    <span>✓ ${esc(t.text)}</span>
+    <button class="undo" data-undo="${esc(t.id)}">Undo</button>
+    <i class="bar" style="animation-duration:${t.ms}ms"></i>
   </div>`;
 }
 

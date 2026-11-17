@@ -231,3 +231,21 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .bottom { grid-area: bottom; }
 .banner:empty { display: block; height: 0; padding: 0; border: 0; margin-bottom: -.7rem; }
 .todos { min-height: 3.6rem; }
+
+/* to-do completion */
+.todo .box { display: grid; place-items: center; font-weight: 800; font-size: 1.1rem; position: relative; }
+.todo .box::before { content: ''; position: absolute; inset: -.7rem; } /* bigger touch target */
+.todo.pending { opacity: .6; }
+.todo.pending .ti { text-decoration: line-through; }
+.todo.pending .box { background: var(--bd-p); color: #fff; border-color: var(--bd-p); opacity: 1; }
+.done-btn { margin-top: 1rem; width: 100%; padding: .8rem; border-radius: .7rem; background: var(--bd-p); color: #fff; font-weight: 700; font-size: 1.15rem; text-align: center; }
+.toast {
+  position: fixed; left: 50%; bottom: calc(9rem + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 30;
+  display: flex; align-items: center; gap: 1.2rem; max-width: min(42rem, calc(100vw - 2rem)); overflow: hidden;
+  background: #2C2C2A; color: #F1EFE8; border-radius: .9rem; padding: .7rem .8rem .7rem 1.2rem; box-shadow: var(--shadow); font-size: 1.05rem;
+}
+.toast > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toast .undo { background: #F1EFE8; color: #2C2C2A; border-radius: .6rem; padding: .6rem 1.2rem; font-weight: 800; min-height: 2.8rem; }
+.toast .bar { position: absolute; left: 0; bottom: 0; height: .25rem; background: #9FD36B; width: 100%; transform-origin: left; animation: toastbar linear forwards; }
+.toast.err { background: #791F1F; color: #fff; padding: .9rem 1.2rem; }
+@keyframes toastbar { from { transform: scaleX(1); } to { transform: scaleX(0); } }

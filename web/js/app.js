@@ -1,13 +1,14 @@
-import { getKey } from './api.js?v=__V__';
+import { getKey, apiPost } from './api.js?v=__V__';
 import { createStore } from './store.js?v=__V__';
 import { getMode } from './mode.js?v=__V__';
 import { startKiosk } from './kiosk.js?v=__V__';
 import { calibrate, clockLabel, setNow, now, parts } from './time.js?v=__V__';
-import { bannerHtml, nowHtml, weekHtml, todosHtml, chipsHtml, itemSheetHtml, daySheetHtml, nightHtml } from './render.js?v=__V__';
+import { bannerHtml, nowHtml, weekHtml, todosHtml, chipsHtml, itemSheetHtml, daySheetHtml, nightHtml, toastHtml } from './render.js?v=__V__';
 
 const IDLE_MS = 2 * 60 * 1000;        // wall: return home after 2 min without a touch
 const NIGHT = { start: 21 * 60 + 30, end: 6 * 60 + 30 }; // 9:30 pm – 6:30 am (settings later)
 const WAKE_MS = 2 * 60 * 1000;        // a tap at night shows the dark full view for 2 min
+const UNDO_MS = 5000;                 // time to undo a to-do tick before it is written to Trello
 
 window.__appStarted = true; // modules loaded; disarms the reload safety net in index.html
 try { sessionStorage.removeItem('wall-rescue'); } catch (e) { /* ignore */ }
@@ -25,7 +26,10 @@ const ui = {
   filter: 'all',
   sheet: null,          // { type: 'item', id } | { type: 'day', day }
   wokeAt: 0,
-  lastTouch: Date.now()
+  lastTouch: Date.now(),
+  pending: new Map(),   // to-do id -> undo timer (ticked, not yet sent)
+  hidden: new Set(),    // to-do ids completed in Trello; hidden until the snapshot drops them
+  toast: null
 };
 try { if (!mode.kiosk) ui.filter = localStorage.getItem('wall-filter') || 'all'; } catch (e) { /* ignore */ }
 
@@ -70,7 +74,10 @@ function render() {
   }
   calibrate(snap.tzOffset);
   const ctx = ctxFor(snap);
-  const items = snap.items || [];
+  ctx.pending = new Set(ui.pending.keys());
+  const present = new Set((snap.items || []).map((x) => x.id));
+  for (const id of ui.hidden) if (!present.has(id)) ui.hidden.delete(id);
+  const items = (snap.items || []).filter((x) => !ui.hidden.has(x.id));
 
   const night = isNight();
   applyTheme(night);
@@ -91,6 +98,7 @@ function render() {
   stamp.className = 'stamp' + (stale ? ' stale' : '');
 
   renderSheet(items, ctx);
+  $('#toast').innerHTML = toastHtml(ui.toast);
 }
 
 function renderSheet(items, ctx) {
@@ -121,6 +129,10 @@ document.addEventListener('click', (e) => {
   if (!$('#night').hidden) { ui.wokeAt = Date.now(); render(); return; }
   const t = e.target;
   if (t.closest('[data-close]') || t.id === 'scrim') { ui.sheet = null; render(); return; }
+  const u = t.closest('[data-undo]');
+  if (u) { undoComplete(u.dataset.undo); return; }
+  const c = t.closest('[data-complete]');
+  if (c) { startComplete(c.dataset.complete); return; }
   const f = t.closest('[data-filter]');
   if (f) {
     ui.filter = f.dataset.filter;
@@ -134,6 +146,42 @@ document.addEventListener('click', (e) => {
 });
 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ui.sheet) { ui.sheet = null; render(); } });
+
+// ---------------------------------------------------------------- to-do completion
+function todoById(id) { return ((store.state.snap && store.state.snap.items) || []).find((x) => x.id === id); }
+
+function startComplete(id) {
+  const x = todoById(id);
+  if (!x || x.section !== 'todo' || ui.pending.has(id)) return;
+  ui.sheet = null;
+  ui.pending.set(id, setTimeout(() => commitComplete(id), UNDO_MS));
+  ui.toast = { id, text: x.title, ms: UNDO_MS };
+  render();
+}
+
+function undoComplete(id) {
+  clearTimeout(ui.pending.get(id));
+  ui.pending.delete(id);
+  if (ui.toast && ui.toast.id === id) ui.toast = null;
+  render();
+}
+
+async function commitComplete(id) {
+  const x = todoById(id);
+  ui.pending.delete(id);
+  if (ui.toast && ui.toast.id === id) ui.toast = null;
+  ui.hidden.add(id);
+  render();
+  try {
+    if (demo) await new Promise((r) => setTimeout(r, 400));
+    else await apiPost('completeTodo', { cardId: x.trelloId });
+  } catch (e) {
+    ui.hidden.delete(id);
+    ui.toast = { kind: 'error', text: 'Couldn’t update Trello. Try again in a minute.' };
+    setTimeout(() => { if (ui.toast && ui.toast.kind === 'error') { ui.toast = null; render(); } }, 6000);
+    render();
+  }
+}
 
 // Wall: drift back to the home state when nobody is using it.
 if (mode.kiosk) {
