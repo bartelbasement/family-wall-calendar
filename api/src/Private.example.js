@@ -8,6 +8,11 @@ var PRIVATE_CONFIG = {
   trello: {
     boardId: 'abc123XY' // short link from the board URL: trello.com/b/<boardId>/...
   },
+  // Run listCalendars() in the editor to find IDs. defaultPerson is optional.
+  calendars: [
+    { id: 'family123@group.calendar.google.com' },
+    { id: 'someone@gmail.com', defaultPerson: 'D' }
+  ],
   people: [
     { code: 'S', name: 'Kid One',   badge: 'S', trelloLabels: ['Kid One'],   keywords: ['kid one'] },
     { code: 'R', name: 'Kid Two',   badge: 'R', trelloLabels: ['Kid Two'],   keywords: ['kid two'] },

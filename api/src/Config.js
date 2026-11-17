@@ -14,6 +14,9 @@ var CONFIG_DEFAULTS_ = {
     offDayLabel: 'No school'
   },
   changeWindowHours: 48,
+  windowDays: 30,
+  // Google calendars to read: [{ id, defaultPerson? }]. Set in Private.js.
+  calendars: [],
   // code: S/R/C kids, M/D/P adults, F family (fallback). Names come from Private.js.
   people: []
 };
@@ -24,6 +27,8 @@ function getConfig_() {
   if (priv.trello) Object.keys(priv.trello).forEach(function (k) { cfg.trello[k] = priv.trello[k]; });
   if (priv.people) cfg.people = priv.people;
   if (priv.changeWindowHours) cfg.changeWindowHours = priv.changeWindowHours;
+  if (priv.windowDays) cfg.windowDays = priv.windowDays;
+  if (priv.calendars) cfg.calendars = priv.calendars;
   if (!cfg.trello.boardId) throw new Error('Trello boardId is not configured (see Private.example.js)');
   return cfg;
 }

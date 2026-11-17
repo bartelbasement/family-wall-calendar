@@ -19,6 +19,11 @@ var GET_ACTIONS = {
   trello: function (p) {
     var r = getTrelloItems_(p.fresh === '1');
     return { ok: true, boardName: r.boardName, fetchedAt: r.fetchedAt, count: r.items.length, items: r.items };
+  },
+  // Milestone 3 check: normalized Google Calendar events (today .. +windowDays).
+  calendar: function (p) {
+    var r = getCalendarItems_(p.fresh === '1');
+    return { ok: true, fetchedAt: r.fetchedAt, errors: r.errors, count: r.items.length, items: r.items };
   }
 };
 
