@@ -21,9 +21,39 @@ function listCalendars() {
 /** Run from the editor after setting calendars in Private.js. */
 function testCalendar() {
   var r = getCalendarItems_(true);
-  console.log(r.items.length + ' events from ' + r.calendars.length + ' calendar(s)');
-  r.items.slice(0, 15).forEach(function (e) {
-    console.log(e.date + ' ' + (e.allDay ? 'all-day' : e.start.slice(11, 16) + 'Z') + '  [' + e.people.join(',') + ']  ' + e.title);
+  console.log(r.items.length + ' events from ' + r.calendars.length + ' calendar(s), ' + r.errors.length + ' error(s)');
+  var tz = Session.getScriptTimeZone();
+  // Per calendar, so the small subscribed calendars are not hidden behind the busy ones.
+  r.calendars.forEach(function (id) {
+    var mine = r.items.filter(function (e) { return e.calendarId === id; });
+    console.log('--- ' + id.slice(0, 24) + '… (' + mine.length + ')');
+    mine.slice(0, 6).forEach(function (e) {
+      var when = e.allDay ? 'all-day' : Utilities.formatDate(new Date(e.start), tz, 'HH:mm');
+      console.log(e.date + ' ' + when + '  [' + e.people.join(',') + ']  ' + e.title);
+    });
+  });
+}
+
+/**
+ * Fallback for calendars the advanced API refuses (subscribed ICS feeds,
+ * "@import.calendar.google.com", return 404 there). Reads them with CalendarApp
+ * and reshapes each event into the v3 resource shape normalizeCalendarEvent expects.
+ */
+function fetchViaCalendarApp_(calendarId, timeMin, timeMax, tz) {
+  var cal = CalendarApp.getCalendarById(calendarId);
+  if (!cal) throw new Error('CalendarApp cannot open ' + calendarId);
+  var ymd = function (d) { return Utilities.formatDate(d, tz, 'yyyy-MM-dd'); };
+  var iso = function (d) { return Utilities.formatDate(d, tz, "yyyy-MM-dd'T'HH:mm:ssXXX"); };
+  return cal.getEvents(timeMin, timeMax).map(function (e) {
+    var allDay = e.isAllDayEvent();
+    return {
+      id: 'app_' + Utilities.base64EncodeWebSafe(e.getId() + '|' + e.getStartTime().getTime()).replace(/=+$/, ''),
+      iCalUID: e.getId(),
+      summary: e.getTitle(),
+      location: e.getLocation() || null,
+      start: allDay ? { date: ymd(e.getAllDayStartDate()) } : { dateTime: iso(e.getStartTime()) },
+      end: allDay ? { date: ymd(e.getAllDayEndDate()) } : { dateTime: iso(e.getEndTime()) }
+    };
   });
 }
 
@@ -64,7 +94,14 @@ function getCalendarItems_(fresh) {
   var items = [], errors = [];
   cfg.calendars.forEach(function (c) {
     try {
-      fetchCalendarEvents_(c.id, timeMin, timeMax).forEach(function (ev) {
+      var raw;
+      try {
+        raw = fetchCalendarEvents_(c.id, timeMin, timeMax);
+      } catch (apiErr) {
+        console.warn('Advanced API failed for ' + c.id + ' (' + apiErr.message + '); using CalendarApp');
+        raw = fetchViaCalendarApp_(c.id, timeMin, timeMax, tz);
+      }
+      raw.forEach(function (ev) {
         var e = normalizeCalendarEvent(ev, {
           calendarId: c.id, defaultPerson: c.defaultPerson || null, people: cfg.people, localDate: localDate
         });
