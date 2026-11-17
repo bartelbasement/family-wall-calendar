@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex">
+<title>Family Calendar</title>
+<style>
+  :root { --bg:#fff; --text:#2C2C2A; --muted:#5F5E5A; --ok:#27500A; --bad:#791F1F; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1f1f1e; --text:#F1EFE8; --muted:#B4B2A9; --ok:#9FD36B; --bad:#F09595; } }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font:20px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         padding: 24px max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left)); }
+  h1 { font-size:32px; margin:0 0 12px; }
+  #status { color:var(--muted); }
+  .ok { color:var(--ok) !important; } .bad { color:var(--bad) !important; }
+</style>
+</head>
+<body>
+<h1>Family Calendar</h1>
+<p id="status">Connecting…</p>
+<script type="module">
+  import { apiGet } from './js/api.js';
+  const el = document.getElementById('status');
+  try {
+    const r = await apiGet('ping');
+    el.textContent = `Connected. Server time ${r.now} (${r.tz}).`;
+    el.className = 'ok';
+  } catch (e) {
+    el.textContent = e.message === 'missing_key'
+      ? 'Open this page using the family link (it includes the access key).'
+      : `Could not reach the server (${e.message}).`;
+    el.className = 'bad';
+  }
+</script>
+</body>
+</html>

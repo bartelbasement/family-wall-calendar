@@ -1,0 +1,42 @@
+import { API_URL } from './config.js';
+
+const KEY_STORE = 'wall-key';
+
+/** Reads ?key= from the URL once, saves it, and strips it from the address bar. */
+export function getKey() {
+  const url = new URL(location.href);
+  const fromUrl = url.searchParams.get('key');
+  if (fromUrl) {
+    try { localStorage.setItem(KEY_STORE, fromUrl); } catch (e) { /* storage blocked */ }
+    url.searchParams.delete('key');
+    history.replaceState(null, '', url);
+    return fromUrl;
+  }
+  try { return localStorage.getItem(KEY_STORE); } catch (e) { return null; }
+}
+
+export async function apiGet(action, params = {}) {
+  const key = getKey();
+  if (!key) throw new Error('missing_key');
+  const qs = new URLSearchParams({ ...params, action, key });
+  const res = await fetch(`${API_URL}?${qs}`, { redirect: 'follow' });
+  if (!res.ok) throw new Error(`http_${res.status}`);
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || 'api_error');
+  return data;
+}
+
+export async function apiPost(action, body = {}) {
+  const key = getKey();
+  if (!key) throw new Error('missing_key');
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ ...body, action, key, requestId: crypto.randomUUID() }),
+    redirect: 'follow'
+  });
+  if (!res.ok) throw new Error(`http_${res.status}`);
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || 'api_error');
+  return data;
+}

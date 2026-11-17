@@ -1,0 +1,9 @@
+node_modules/
+# clasp project binding (script ID) and credentials stay local; the repo is public
+.clasp.json
+.clasprc.json
+_to_review/
+# Private planning notes (names, board URL, school details): never publish
+family-wall-calendar-handoff.md
+private/
+.DS_Store

@@ -1,0 +1,14 @@
+{
+  "name": "family-wall-calendar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Family wall calendar: static web front-end + Google Apps Script JSON API.",
+  "scripts": {
+    "test": "node --test api/test/",
+    "push": "clasp push",
+    "serve": "npx --yes http-server web -p 8080 -c-1"
+  },
+  "devDependencies": {
+    "@google/clasp": "^3.4.1"
+  }
+}
