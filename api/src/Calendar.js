@@ -28,8 +28,9 @@ function testCalendar() {
     var mine = r.items.filter(function (e) { return e.calendarId === id; });
     console.log('--- ' + id.slice(0, 24) + '… (' + mine.length + ')');
     mine.slice(0, 6).forEach(function (e) {
-      var when = e.allDay ? 'all-day' : Utilities.formatDate(new Date(e.start), tz, 'HH:mm');
-      console.log(e.date + ' ' + when + '  [' + e.people.join(',') + ']  ' + e.title);
+      var when = e.allDay ? 'all-day' : Utilities.formatDate(new Date(e.start), tz, 'HH:mm')
+        + (e.folded ? '-' + Utilities.formatDate(new Date(e.end), tz, 'HH:mm') : '');
+      console.log(e.date + ' ' + when + '  [' + e.people.join(',') + ']  ' + (e.icon ? e.icon + ' ' : '') + e.title);
     });
   });
 }
@@ -101,12 +102,14 @@ function getCalendarItems_(fresh) {
         console.warn('Advanced API failed for ' + c.id + ' (' + apiErr.message + '); using CalendarApp');
         raw = fetchViaCalendarApp_(c.id, timeMin, timeMax, tz);
       }
+      var mine = [];
       raw.forEach(function (ev) {
         var e = normalizeCalendarEvent(ev, {
           calendarId: c.id, defaultPerson: c.defaultPerson || null, people: cfg.people, localDate: localDate
         });
-        if (e) items.push(e);
+        if (e) mine.push(e);
       });
+      items = items.concat(applyCalendarDisplay(mine, c));
     } catch (err) {
       // One unreadable calendar should not blank the wall.
       console.error('Calendar ' + c.id + ' failed: ' + err.message);

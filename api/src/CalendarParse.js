@@ -84,6 +84,53 @@ function normalizeCalendarEvent(ev, ctx) {
   };
 }
 
+/**
+ * Applies a calendar's display options to its normalized events.
+ *  - display 'icon': each event becomes a day-header icon item (display:'icon', icon:'🗑️♻️').
+ *    Icons come from opts.icons [{match:'garbage', icon:'🗑️'}], matched as whole words.
+ *  - fold {title}: 2+ timed events on the same day collapse into one item from the
+ *    earliest start to the latest end. A lone event keeps its own title.
+ */
+function applyCalendarDisplay(items, opts) {
+  opts = opts || {};
+  if (opts.display === 'icon') {
+    return items.map(function (e) {
+      var t = e.title.toLowerCase();
+      var icons = (opts.icons || []).filter(function (r) {
+        return new RegExp('(^|[^a-z0-9])' + escapeRegex_(r.match.toLowerCase()) + '($|[^a-z0-9])').test(t);
+      }).map(function (r) { return r.icon; });
+      var out = Object.assign({}, e);
+      out.display = 'icon';
+      out.icon = icons.length ? icons.join('') : (opts.defaultIcon || '📌');
+      return out;
+    });
+  }
+  if (opts.fold) {
+    var byDay = {}, order = [];
+    items.forEach(function (e) {
+      if (e.allDay) { order.push([e]); return; }
+      if (!byDay[e.date]) { byDay[e.date] = []; order.push(byDay[e.date]); }
+      byDay[e.date].push(e);
+    });
+    return order.map(function (group) {
+      if (group.length === 1) return group[0];
+      var sorted = group.slice().sort(function (a, b) { return Date.parse(a.start) - Date.parse(b.start); });
+      var last = sorted.reduce(function (m, e) { return Date.parse(e.end || e.start) > Date.parse(m.end || m.start) ? e : m; });
+      var out = Object.assign({}, sorted[0]);
+      out.id = sorted[0].id + '+fold';
+      out.title = opts.fold.title || sorted[0].title;
+      out.end = last.end || last.start;
+      out.endDate = last.endDate || out.endDate;
+      out.folded = sorted.map(function (e) { return { title: e.title, start: e.start, end: e.end }; });
+      return out;
+    });
+  }
+  return items;
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { peopleFromText: peopleFromText, normalizeCalendarEvent: normalizeCalendarEvent, PERSON_PROP: PERSON_PROP_ };
+  module.exports = {
+    peopleFromText: peopleFromText, normalizeCalendarEvent: normalizeCalendarEvent,
+    applyCalendarDisplay: applyCalendarDisplay, PERSON_PROP: PERSON_PROP_
+  };
 }
