@@ -7,6 +7,11 @@
 var GET_ACTIONS = {
   ping: function () {
     return { ok: true, now: new Date().toISOString(), tz: Session.getScriptTimeZone() };
+  },
+  // Milestone 2 check: normalized Trello items. ?fresh=1 bypasses the 5-minute cache.
+  trello: function (p) {
+    var r = getTrelloItems_(p.fresh === '1');
+    return { ok: true, boardName: r.boardName, fetchedAt: r.fetchedAt, count: r.items.length, items: r.items };
   }
 };
 

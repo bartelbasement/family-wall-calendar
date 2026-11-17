@@ -4,7 +4,7 @@
   "private": true,
   "description": "Family wall calendar: static web front-end + Google Apps Script JSON API.",
   "scripts": {
-    "test": "node --test api/test/",
+    "test": "node --test \"api/test/**/*.test.js\"",
     "push": "clasp push",
     "serve": "npx --yes http-server web -p 8080 -c-1"
   },

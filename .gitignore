@@ -7,3 +7,5 @@ _to_review/
 family-wall-calendar-handoff.md
 private/
 .DS_Store
+# Family-specific config (names, board ID); pushed by clasp, never committed
+api/src/Private.js
