@@ -98,7 +98,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* ---------- Week grid ---------- */
 .week-wrap { position: relative; min-height: 0; display: flex; }
 .week {
-  --days: 4; --gap: .45rem;
+  --days: 3; --gap: .5rem;
   flex: 1; display: grid; grid-auto-flow: column; gap: var(--gap); min-height: 0;
   grid-auto-columns: calc((100% - (var(--days) - 1) * var(--gap)) / var(--days));
   overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none;
@@ -218,3 +218,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* smaller Now items (tomorrow preview) */
 .now-item.small .tm { font-size: 1.05rem; }
 .now-item.small .ti { font-size: 1.25rem; }
+
+/* change markers that never push the title */
+.now-item .tm .flag { display: block; font-size: .62em; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--bd-p); margin-top: .15rem; }
+.todo .flag-inline { font-weight: 800; color: var(--bd-p); }
+.date-icons { font-size: .85em; margin-left: .35rem; }

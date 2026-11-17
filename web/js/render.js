@@ -29,7 +29,7 @@ export function visible(item, filter) {
   return (filter === 'M' || filter === 'D') && item.people.includes('P');
 }
 
-const changeTag = (x) => x.change === 'new' ? '<span class="tag">New</span>' : x.change === 'changed' ? '<span class="tag">Changed</span>' : '';
+const changeWord = (x) => x.change === 'new' ? 'New' : x.change === 'changed' ? 'Changed' : '';
 
 function timeRange(x) {
   if (x.allDay) return x.whenLabel || 'All day';
@@ -68,8 +68,10 @@ export function nowHtml(items, filter, ctx) {
 
   let html = `<div class="clock">${clockLabel(t)}<span class="ampm">${p.h < 12 ? 'am' : 'pm'}</span></div>
     <div class="date">${esc(longDateLabel(today))}</div>`;
-  if (allDay.length) {
-    html += `<div class="allday-today">${allDay.map((x) =>
+  const icons = items.filter((x) => x.display === 'icon' && x.date === today);
+  if (allDay.length || icons.length) {
+    html += `<div class="allday-today">${icons.map((x) =>
+      `<span class="chip-ad p-F">${esc(x.icon)} ${esc(x.title)}</span>`).join('')}${allDay.map((x) =>
       `<button class="chip-ad p-${bandCode(x.people)}" data-id="${esc(x.id)}">${esc(x.title)}</button>`).join('')}</div>`;
   }
 
@@ -78,35 +80,17 @@ export function nowHtml(items, filter, ctx) {
       const ongoing = Date.parse(x.start) <= t.getTime();
       const sub = [x.note, x.location].filter(Boolean)[0];
       return `<button class="now-item p-${bandCode(x.people)}${ongoing ? ' ongoing' : ''}${i === nextIdx ? ' next' : ''}" data-id="${esc(x.id)}">
-        <span class="tm">${timeLabel(x.start)}</span>
-        <span class="ti">${changeTag(x)}${esc(x.title)} ${badges(x.people, ctx)}</span>
+        <span class="tm">${timeLabel(x.start)}${x.change ? `<span class="flag">${changeWord(x)}</span>` : ''}</span>
+        <span class="ti">${esc(x.title)} ${badges(x.people, ctx)}</span>
         ${sub ? `<span class="sub">${esc(sub)}</span>` : ''}
       </button>`;
     }).join('') + `</div>`;
     if (live.length > shown.length) html += `<div class="now-more">Later today: +${live.length - shown.length} more</div>`;
-    if (shown.length <= 2) html += tomorrowHtml(items, filter, ctx, 3 - shown.length);
   } else {
     // Nothing left today: preview the next day with events.
-    html += `<div class="now-empty">Nothing else today.</div>` + tomorrowHtml(items, filter, ctx, 4);
+    html += `<div class="now-h">Today</div><div class="now-empty">Nothing else today.</div>`;
   }
   return html;
-}
-
-/** Preview of the next day (within 3 days) that has events: "Tomorrow" or "Friday". */
-function tomorrowHtml(items, filter, ctx, max) {
-  const today = todayYmd();
-  let day = null, tm = [];
-  for (let i = 1; i <= 3 && !tm.length; i++) {
-    day = addDays(today, i);
-    tm = eventsOn(items, day).filter((x) => visible(x, filter)).slice(0, Math.max(1, max));
-  }
-  if (!tm.length) return '';
-  const label = day === addDays(today, 1) ? 'Tomorrow' : longDateLabel(day).split(',')[0];
-  return `<div class="now-h">${label}</div><div class="now-list">` + tm.map((x) =>
-    `<button class="now-item small p-${bandCode(x.people)}" data-id="${esc(x.id)}">
-      <span class="tm">${x.allDay ? 'All day' : timeLabel(x.start)}</span>
-      <span class="ti">${esc(x.title)} ${badges(x.people, ctx)}</span>
-    </button>`).join('') + '</div>';
 }
 
 // ---------------------------------------------------------------- week grid
@@ -125,7 +109,7 @@ function pillHtml(x, ctx, isPast) {
 export function weekHtml(items, filter, ctx) {
   const today = todayYmd(), tNow = now().getTime();
   const days = [];
-  for (let i = 0; i < WEEK_DAYS; i++) days.push(addDays(today, i));
+  for (let i = 1; i <= WEEK_DAYS; i++) days.push(addDays(today, i));
   return days.map((d) => {
     const all = eventsOn(items, d);
     const evs = all.filter((x) => visible(x, filter));
@@ -140,7 +124,7 @@ export function weekHtml(items, filter, ctx) {
     const rest = evs.length - shown.length;
     return `<section class="day${d === today ? ' today' : ''}${off ? ' off' : ''}">
       <button class="day-h" data-day="${d}">
-        <span><span class="dow">${d === today ? 'TODAY' : label.toUpperCase()}</span><br><span class="num">${Number(dd)}</span></span>
+        <span><span class="dow">${d === addDays(today, 1) ? 'TOMORROW' : label.toUpperCase()}</span><br><span class="num">${Number(dd)}</span></span>
         <span class="icons">${esc(icons)}</span>
         <span class="dots">${dots.map((p) => `<i class="p-${ADULTS.includes(p) ? 'A' : p}"></i>`).join('')}</span>
       </button>
@@ -163,8 +147,8 @@ export function todosHtml(items, filter, ctx) {
     const due = !x.date ? '' : overdue ? 'Overdue' : x.date === today ? 'Due today' : 'Due ' + dayLabel(x.date);
     return `<button class="todo p-${bandCode(x.people)}" data-id="${esc(x.id)}">
       <span class="box"></span>
-      <span class="ti">${changeTag(x)}${esc(x.title)}</span>
-      <span class="due${overdue ? ' overdue' : ''}">${badges(x.people, ctx)} ${esc(due)}</span>
+      <span class="ti">${esc(x.title)}</span>
+      <span class="due${overdue ? ' overdue' : ''}">${badges(x.people, ctx)} ${esc(due)}${x.change ? ` · <b class="flag-inline">${changeWord(x)}</b>` : ''}</span>
     </button>`;
   }).join('');
 }
@@ -188,7 +172,7 @@ export function itemSheetHtml(x, ctx, kiosk) {
     x.location ? ['Where', esc(x.location)] : null,
     x.note ? ['Note', esc(x.note)] : null,
     x.folded ? ['Includes', x.folded.map((f) => esc(f.title)).join(', ')] : null,
-    x.changeNote ? ['Changed', esc(x.changeNote)] : null
+    x.change ? [changeWord(x), esc(x.changeNote || (x.change === 'new' ? 'Added in the last 2 days' : 'Updated in the last 2 days'))] : null
   ].filter(Boolean);
   const src = x.source === 'both' ? 'Google Calendar + Trello' : x.source === 'trello' ? 'Trello' : 'Google Calendar';
   const links = kiosk ? '' : [
@@ -199,7 +183,7 @@ export function itemSheetHtml(x, ctx, kiosk) {
     <div class="band"></div>
     <button class="close" data-close aria-label="Close">✕</button>
     ${x.alert ? `<div class="alert-line">⚠️ ${esc(x.alert)}</div>` : ''}
-    <h3>${changeTag(x)}${esc(x.title)}</h3>
+    <h3>${esc(x.title)}</h3>
     <div class="who">${names}</div>
     <dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
     ${links ? `<div class="links">${links}</div>` : ''}
