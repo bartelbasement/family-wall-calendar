@@ -20,6 +20,12 @@ var GET_ACTIONS = {
     var r = getTrelloItems_(p.fresh === '1');
     return { ok: true, boardName: r.boardName, fetchedAt: r.fetchedAt, count: r.items.length, items: r.items };
   },
+  // The wall's data: stored merged snapshot (rebuilt every 5 minutes by trigger).
+  snapshot: function () {
+    var s = getSnapshot_();
+    s.ok = true;
+    return s;
+  },
   // Milestone 4 check: which items merged, near misses.
   mergeReport: function (p) {
     var r = getMerged_(p.fresh === '1');

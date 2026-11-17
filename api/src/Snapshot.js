@@ -24,6 +24,65 @@ function getMerged_(fresh) {
   return { fetchedAt: new Date().toISOString(), errors: c.errors, items: r.items, pairs: r.pairs, nearMisses: r.nearMisses };
 }
 
+var SNAPSHOT_STALE_MINUTES_ = 20;
+
+/**
+ * Trigger target (every 5 minutes): rebuilds the snapshot from live sources.
+ * On failure the previous snapshot is kept and the error recorded, so the wall
+ * keeps showing the last good data.
+ */
+function buildSnapshot() {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(1000)) return; // a build is already running
+  var props = PropertiesService.getScriptProperties();
+  try {
+    var r = getMerged_(true);
+    var tz = Session.getScriptTimeZone(), now = new Date();
+    writeSnapshot_({
+      version: 1,
+      updatedAt: now.toISOString(),
+      tz: tz,
+      // Server's current UTC offset, e.g. "-07:00", so clients can verify their tzdata.
+      tzOffset: Utilities.formatDate(now, tz, 'XXX'),
+      today: Utilities.formatDate(now, tz, 'yyyy-MM-dd'),
+      sourceErrors: r.errors,
+      items: r.items
+    });
+    props.setProperty('SNAP_LAST_OK', now.toISOString());
+    props.deleteProperty('SNAP_LAST_ERROR');
+  } catch (err) {
+    console.error('buildSnapshot failed: ' + (err && err.stack || err));
+    props.setProperty('SNAP_LAST_ERROR', new Date().toISOString() + ' ' + String(err && err.message || err).slice(0, 500));
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Snapshot for the wall: stored copy, or a live build if none exists yet. */
+function getSnapshot_() {
+  var snap = readSnapshot_();
+  if (!snap) {
+    buildSnapshot();
+    snap = readSnapshot_();
+  }
+  if (!snap) throw new Error('No snapshot available yet');
+  var ageMin = (Date.now() - Date.parse(snap.updatedAt)) / 60000;
+  snap.stale = ageMin > SNAPSHOT_STALE_MINUTES_;
+  snap.lastError = PropertiesService.getScriptProperties().getProperty('SNAP_LAST_ERROR');
+  return snap;
+}
+
+/** Run once from the editor: (re)creates the 5-minute buildSnapshot trigger. */
+function installTriggers() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'buildSnapshot') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('buildSnapshot').timeBased().everyMinutes(5).create();
+  buildSnapshot();
+  var s = readSnapshot_();
+  console.log('Trigger installed. Snapshot: ' + (s ? s.items.length + ' items at ' + s.updatedAt : 'NOT BUILT, see SNAP_LAST_ERROR'));
+}
+
 /** Run from the editor: dry-run merge report against live data. */
 function testMerge() {
   var r = getMerged_(true);
