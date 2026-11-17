@@ -1,7 +1,7 @@
 // Kiosk-only behaviour for the wall iPad. Long-running WebKit pages leak memory
 // and can freeze after days, so the page reloads itself every night and after
 // a long run of failed fetches.
-import { parts } from './time.js';
+import { parts } from './time.js?v=__V__';
 
 const RELOAD_HOUR = 3;            // 3 am Vancouver time
 const MAX_UPTIME_MS = 26 * 3600e3; // backstop if the 3 am check is missed

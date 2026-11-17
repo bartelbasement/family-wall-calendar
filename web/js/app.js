@@ -1,13 +1,16 @@
-import { getKey } from './api.js';
-import { createStore } from './store.js';
-import { getMode } from './mode.js';
-import { startKiosk } from './kiosk.js';
-import { calibrate, clockLabel, setNow, now, parts } from './time.js';
-import { bannerHtml, nowHtml, weekHtml, todosHtml, chipsHtml, itemSheetHtml, daySheetHtml, nightHtml } from './render.js';
+import { getKey } from './api.js?v=__V__';
+import { createStore } from './store.js?v=__V__';
+import { getMode } from './mode.js?v=__V__';
+import { startKiosk } from './kiosk.js?v=__V__';
+import { calibrate, clockLabel, setNow, now, parts } from './time.js?v=__V__';
+import { bannerHtml, nowHtml, weekHtml, todosHtml, chipsHtml, itemSheetHtml, daySheetHtml, nightHtml } from './render.js?v=__V__';
 
 const IDLE_MS = 2 * 60 * 1000;        // wall: return home after 2 min without a touch
 const NIGHT = { start: 21 * 60 + 30, end: 6 * 60 + 30 }; // 9:30 pm – 6:30 am (settings later)
 const WAKE_MS = 2 * 60 * 1000;        // a tap at night shows the dark full view for 2 min
+
+window.__appStarted = true; // modules loaded; disarms the reload safety net in index.html
+try { sessionStorage.removeItem('wall-rescue'); } catch (e) { /* ignore */ }
 
 const params = new URLSearchParams(location.search);
 const demo = params.has('demo');
@@ -74,7 +77,7 @@ function render() {
   $('#night').hidden = !night;
   if (night) { $('#night').innerHTML = nightHtml(items); return; }
 
-  $('#banner').innerHTML = bannerHtml(items, ui.filter);
+  $('#banner').innerHTML = bannerHtml(items, 'all'); // alerts matter to everyone: ignore the filter
   $('#now').innerHTML = nowHtml(items, ui.filter, ctx);
   const wk = $('#week'), keep = wk.scrollLeft;
   wk.innerHTML = weekHtml(items, ui.filter, ctx);

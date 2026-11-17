@@ -1,5 +1,5 @@
 // Pure HTML builders for the Now + Week view. No DOM access here.
-import { now, ymd, todayYmd, addDays, timeLabel, clockLabel, dayLabel, longDateLabel, parts } from './time.js';
+import { now, ymd, todayYmd, addDays, timeLabel, clockLabel, dayLabel, longDateLabel, parts } from './time.js?v=__V__';
 
 const KIDS = ['S', 'R', 'C'];
 const ADULTS = ['M', 'D', 'P'];

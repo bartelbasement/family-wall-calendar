@@ -1,4 +1,4 @@
-import { API_URL } from './config.js';
+import { API_URL } from './config.js?v=__V__';
 
 const KEY_STORE = 'wall-key';
 

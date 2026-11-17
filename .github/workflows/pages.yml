@@ -23,6 +23,11 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Stamp asset version (stops browsers mixing old and new cached files)
+        run: |
+          V="${GITHUB_SHA::8}"
+          grep -rl "__V__" web --include=*.js --include=*.html | xargs sed -i "s/__V__/$V/g"
+          grep -rn "__V__" web && exit 1 || echo "stamped $V"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

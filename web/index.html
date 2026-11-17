@@ -9,7 +9,7 @@
 <meta name="robots" content="noindex">
 <meta name="color-scheme" content="light dark">
 <title>Family Calendar</title>
-<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/app.css?v=__V__">
 </head>
 <body>
 <div id="app">
@@ -28,6 +28,20 @@
 </div>
 <div id="scrim" class="scrim" hidden></div>
 <div id="night" class="night" hidden></div>
-<script type="module" src="js/app.js"></script>
+<script type="module" src="js/app.js?v=__V__"></script>
+<script>
+  // Safety net: if the app has not started (e.g. a stale cached file broke a
+  // module import), reload once from the network. sessionStorage stops loops.
+  setTimeout(function () {
+    if (window.__appStarted) return;
+    try {
+      if (sessionStorage.getItem('wall-rescue')) return;
+      sessionStorage.setItem('wall-rescue', '1');
+    } catch (e) { return; }
+    var u = new URL(location.href);
+    u.searchParams.set('r', Date.now());
+    location.replace(u.toString());
+  }, 10000);
+</script>
 </body>
 </html>

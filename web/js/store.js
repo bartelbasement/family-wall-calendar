@@ -1,6 +1,6 @@
 // Polls the snapshot, keeps the last good copy (memory + localStorage), and
 // backs off on errors. The wall never blanks because of a failed fetch.
-import { apiGet } from './api.js';
+import { apiGet } from './api.js?v=__V__';
 
 const LS_KEY = 'wall-snapshot-v1';
 export const STALE_MINUTES = 20;
