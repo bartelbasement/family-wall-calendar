@@ -20,6 +20,20 @@ function parseDesc(desc) {
   return out;
 }
 
+/**
+ * Removes a leading "Who: " prefix (e.g. "Stella: Volleyball", "LFES: No school")
+ * when the prefix is one of the given names (person or label names, any case).
+ * The badge already shows who, so the prefix is noise on the wall.
+ */
+function stripTitlePrefix(title, names) {
+  var t = String(title || '').trim();
+  var m = t.match(/^([^:]{1,30}):\s+(.+)$/);
+  if (!m) return t;
+  var prefix = m[1].trim().toLowerCase();
+  var known = (names || []).some(function (n) { return String(n).trim().toLowerCase() === prefix; });
+  return known ? m[2].trim() : t;
+}
+
 /** True when a WHEN: value means the item has no specific time. */
 function isAllDayWhen(when) {
   return !!when && /\ball[\s-]?day\b/i.test(when);
@@ -38,7 +52,9 @@ function normalizeCard(card, ctx) {
   var section = ctx.listSections[card.idList];
   if (!section) return null; // Done or unknown lists are not displayed
 
-  var labels = (card.labels || []).map(function (l) { return String(l.name || '').trim().toLowerCase(); });
+  var rawLabels = (card.labels || []).map(function (l) { return String(l.name || '').trim(); });
+  var labels = rawLabels.map(function (n) { return n.toLowerCase(); });
+  var rawTitle = String(card.name || '').trim();
   var people = [];
   labels.forEach(function (name) {
     var code = ctx.labelPeople[name];
@@ -57,7 +73,8 @@ function normalizeCard(card, ctx) {
     icalUid: null,
     source: 'trello',
     section: section,
-    title: String(card.name || '').trim(),
+    title: stripTitlePrefix(rawTitle, rawLabels.concat(ctx.personNames || [])),
+    fullTitle: rawTitle,
     start: start,
     end: null,
     allDay: allDay,
@@ -66,7 +83,8 @@ function normalizeCard(card, ctx) {
     people: people,
     note: d.note,
     alert: d.alert,
-    offDay: labels.indexOf(ctx.offDayLabel) !== -1,
+    // Label is the convention; a "No school" title is accepted as a fallback.
+    offDay: labels.indexOf(ctx.offDayLabel) !== -1 || /\bno school\b/i.test(rawTitle),
     done: !!card.dueComplete,
     change: ch.change || null,
     changeNote: ch.changeNote || null,
@@ -101,5 +119,5 @@ function changeMarkers(actions) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { parseDesc: parseDesc, isAllDayWhen: isAllDayWhen, normalizeCard: normalizeCard, changeMarkers: changeMarkers };
+  module.exports = { stripTitlePrefix: stripTitlePrefix, parseDesc: parseDesc, isAllDayWhen: isAllDayWhen, normalizeCard: normalizeCard, changeMarkers: changeMarkers };
 }

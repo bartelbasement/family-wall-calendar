@@ -89,6 +89,7 @@ function getTrelloItems_(fresh) {
     listSections: listSections,
     labelPeople: labelPeople,
     offDayLabel: cfg.trello.offDayLabel.toLowerCase(),
+    personNames: cfg.people.map(function (p) { return p.name; }),
     localDate: function (iso) { return Utilities.formatDate(new Date(iso), tz, 'yyyy-MM-dd'); },
     changes: changes
   };

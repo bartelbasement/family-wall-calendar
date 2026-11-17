@@ -1,6 +1,15 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { parseDesc, isAllDayWhen, normalizeCard, changeMarkers } = require('../src/TrelloParse.js');
+const { stripTitlePrefix, parseDesc, isAllDayWhen, normalizeCard, changeMarkers } = require('../src/TrelloParse.js');
+
+test('stripTitlePrefix removes known person/label prefixes only', () => {
+  const names = ['Kid One', 'SCHOOL', 'Parent'];
+  assert.equal(stripTitlePrefix('Kid One: Volleyball 7 am', names), 'Volleyball 7 am');
+  assert.equal(stripTitlePrefix('school: No school (Pro-D)', names), 'No school (Pro-D)');
+  assert.equal(stripTitlePrefix('Parent: Request tickets — by Sun', names), 'Request tickets — by Sun');
+  assert.equal(stripTitlePrefix('Reminder: bring lunch', names), 'Reminder: bring lunch');
+  assert.equal(stripTitlePrefix('Concert 6:00 pm', names), 'Concert 6:00 pm');
+});
 
 const ctx = {
   listSections: { L_TODO: 'todo', L_UP: 'event' },
@@ -51,6 +60,9 @@ test('normalizeCard maps labels to people, list to section, and local date', () 
 });
 
 test('normalizeCard falls back to Family, flags off days, skips Done lists', () => {
+  const t = normalizeCard({ id: 'c4', name: 'SCHOOL: No school (Design Day)', idList: 'L_UP', labels: [{ name: 'SCHOOL' }] }, ctx);
+  assert.equal(t.offDay, true, 'title fallback');
+  assert.equal(t.title, 'No school (Design Day)');
   const e = normalizeCard({ id: 'c2', name: 'Pro-D day', idList: 'L_UP', labels: [{ name: 'No school' }] }, ctx);
   assert.deepEqual(e.people, ['F']);
   assert.equal(e.offDay, true);

@@ -6,7 +6,14 @@
 
 var GET_ACTIONS = {
   ping: function () {
-    return { ok: true, now: new Date().toISOString(), tz: Session.getScriptTimeZone() };
+    var tz = Session.getScriptTimeZone(), now = new Date();
+    var probe = function (iso) { return Utilities.formatDate(new Date(iso), tz, 'yyyy-MM-dd HH:mm XXX'); };
+    return {
+      ok: true, now: now.toISOString(), tz: tz,
+      local: Utilities.formatDate(now, tz, 'yyyy-MM-dd HH:mm XXX'),
+      // tzdata check: BC is UTC-7 year-round from 2026-03-08.
+      probes: [probe('2026-03-01T20:00:00Z'), probe('2026-11-17T20:00:00Z'), probe('2027-01-15T20:00:00Z')]
+    };
   },
   // Milestone 2 check: normalized Trello items. ?fresh=1 bypasses the 5-minute cache.
   trello: function (p) {
@@ -32,8 +39,13 @@ function doPost(e) {
   return handle_(body.key, body.action, POST_ACTIONS, body);
 }
 
+// Actions that return no family data and may be called without the key.
+var PUBLIC_ACTIONS = { ping: true };
+
 function handle_(key, action, table, args) {
-  if (!checkKey_(key)) return json_({ ok: false, error: 'forbidden' });
+  if (!(table === GET_ACTIONS && PUBLIC_ACTIONS[action]) && !checkKey_(key)) {
+    return json_({ ok: false, error: 'forbidden' });
+  }
   var fn = table[action];
   if (!fn) return json_({ ok: false, error: 'unknown_action', action: String(action) });
   try {
