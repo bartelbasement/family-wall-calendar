@@ -426,8 +426,16 @@ function todayYmdLocal() { const p = parts(now()); return `${p.y}-${String(p.mo)
 function drawAdd() {
   const scrim = $('#scrim');
   const hadFocus = document.activeElement && document.activeElement.id === 'add-title';
+  // Keep the scroll position: on phones the sheet is full-screen and scrolled,
+  // and rebuilding it would otherwise jump back to the top on every tap.
+  const old = scrim.querySelector('.add-sheet');
+  const keep = { sheet: old ? old.scrollTop : 0, scrim: scrim.scrollTop, page: window.scrollY };
   scrim.innerHTML = addSheetHtml(ui.add, (store.state.snap && store.state.snap.people) || []);
   scrim.hidden = false;
+  const neu = scrim.querySelector('.add-sheet');
+  if (neu) neu.scrollTop = keep.sheet;
+  scrim.scrollTop = keep.scrim;
+  if (window.scrollY !== keep.page) window.scrollTo(0, keep.page);
   if (hadFocus) { const i = $('#add-title'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
 }
 
