@@ -551,6 +551,7 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 .tv-sub { font-size: .8rem; opacity: .9; }
 .tv-sub .overdue { color: var(--alert-tx); font-weight: 800; }
 .tv-item.pending { opacity: .6; }
+.tv-others { margin-top: .6rem; }
 .tv-item.pending .ti { text-decoration: line-through; }
 .tv-item.pending .box { background: var(--bd-p); color: #fff; border-color: var(--bd-p); opacity: 1; }
 

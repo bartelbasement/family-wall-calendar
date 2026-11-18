@@ -1,7 +1,7 @@
 // Alternate wall views (M12): People columns and a Rolling 4-day schedule.
 // Pure HTML builders; no DOM access.
 import { now, todayYmd, addDays, timeLabel, dayLabel, minuteOfDay } from './time.js?v=__V__';
-import { esc, bandCode, badges, eventsOn, visible } from './render.js?v=__V__';
+import { esc, bandCode, badges, eventsOn, visible, ADULTS } from './render.js?v=__V__';
 import { dayWx } from './weather.js?v=__V__';
 
 const PEOPLE_DAYS = 7;
@@ -142,6 +142,18 @@ function todoBucket(x, today, weekEnd) {
   return x.date <= weekEnd ? 'week' : 'later';
 }
 
+/**
+ * Whose job is this to-do (By person layout)? If a grown-up is tagged (Mom, Dad
+ * or Parent = both), it's the grown-ups' job and the kids' badges just say who
+ * it's for; otherwise it belongs to everyone tagged. A separate "who does it"
+ * field is planned for the Supabase version; this rule stays as its fallback.
+ */
+function doesTodo(x, code) {
+  const grown = x.people.filter((c) => ADULTS.includes(c));
+  if (!grown.length) return forPerson(x, code);
+  return grown.includes(code) || (grown.includes('P') && (code === 'M' || code === 'D'));
+}
+
 /** One to-do card: tick box (completes, with undo) and the rest opens its pop-up. */
 function todoCard(x, ctx, today, colour) {
   const overdue = x.date && x.date < today;
@@ -156,8 +168,8 @@ function todoCard(x, ctx, today, colour) {
 
 /**
  * The wall's To-dos view: open to-dos in columns, either by due date
- * (Overdue & today | This week | Later | No due date) or by person (like the
- * People view; shared to-dos repeat in each column). Tick to complete, tap to
+ * (Overdue & today | This week | Later | No due date) or by person, by whose
+ * job it is (see doesTodo; a job shared by several people repeats in each column). Tick to complete, tap to
  * open the pop-up, and "Add to-do" opens the Add sheet set to a to-do.
  */
 export function todosViewHtml(items, filter, ctx, people, mode) {
@@ -177,10 +189,15 @@ export function todosViewHtml(items, filter, ctx, people, mode) {
     let ps = people.filter((p) => p.code !== 'P');
     if (filter !== 'all') ps = ps.filter((p) => p.code === filter);
     cols = ps.map((p) => {
-      const mine = open.filter((x) => forPerson(x, p.code));
+      const colour = (x) => p.code === 'F' ? bandCode(x.people) : p.code;
+      const mine = open.filter((x) => doesTodo(x, p.code));
+      // Filtered to one person (a chip), also list what's for them but done by
+      // someone else, so the chip still shows everything involving them.
+      const forThem = filter === 'all' ? [] : open.filter((x) => !doesTodo(x, p.code));
       return `<section class="pcol p-${p.code}">
         <header class="pc-h"><span class="badge p-${p.code}">${esc(p.badge || p.code)}</span><span class="pc-name">${esc(p.name)}</span><span class="pc-n">${mine.length || ''}</span></header>
-        <div class="pc-body tv-body">${mine.map((x) => todoCard(x, ctx, today, p.code === 'F' ? bandCode(x.people) : p.code)).join('') || '<p class="pc-free">Nothing to do</p>'}</div>
+        <div class="pc-body tv-body">${mine.map((x) => todoCard(x, ctx, today, colour(x))).join('') || '<p class="pc-free">Nothing to do</p>'}${
+          forThem.length ? `<div class="pc-dh tv-others">For ${esc(p.name)}, done by others</div>${forThem.map((x) => todoCard(x, ctx, today, bandCode(x.people))).join('')}` : ''}</div>
       </section>`;
     });
   } else {

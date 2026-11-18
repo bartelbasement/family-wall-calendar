@@ -3,7 +3,7 @@ import { now, ymd, todayYmd, addDays, timeLabel, clockLabel, dayLabel, longDateL
 import { nowWx, dayWx } from './weather.js?v=__V__';
 
 const KIDS = ['S', 'R', 'C'];
-const ADULTS = ['M', 'D', 'P'];
+export const ADULTS = ['M', 'D', 'P']; // Mom, Dad, Parent (= either)
 const WEEK_PILLS = 6;
 export const WEEK_DAYS = 14; // rendered; 4 visible at a time, swipe for more
 
