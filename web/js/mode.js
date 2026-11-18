@@ -9,8 +9,10 @@ export function getMode() {
   const q = url.searchParams.get('mode');
   if (VALID.includes(q)) {
     try { localStorage.setItem(LS_KEY, q); } catch (e) { /* ignore */ }
-    url.searchParams.delete('mode');
-    history.replaceState(null, '', url);
+    if (!url.searchParams.has('install')) { // install links keep their parameters (see api.js)
+      url.searchParams.delete('mode');
+      history.replaceState(null, '', url);
+    }
   }
   let saved = q;
   if (!saved) { try { saved = localStorage.getItem(LS_KEY); } catch (e) { saved = null; } }

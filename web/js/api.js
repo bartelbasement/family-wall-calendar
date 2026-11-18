@@ -8,8 +8,12 @@ export function getKey() {
   const fromUrl = url.searchParams.get('key');
   if (fromUrl) {
     try { localStorage.setItem(KEY_STORE, fromUrl); } catch (e) { /* storage blocked */ }
-    url.searchParams.delete('key');
-    history.replaceState(null, '', url);
+    // &install=1 keeps the key in the address so "Add to Home Screen" captures it
+    // (home-screen apps on iOS have their own storage, separate from Safari's).
+    if (!url.searchParams.has('install')) {
+      url.searchParams.delete('key');
+      history.replaceState(null, '', url);
+    }
     return fromUrl;
   }
   try { return localStorage.getItem(KEY_STORE); } catch (e) { return null; }
