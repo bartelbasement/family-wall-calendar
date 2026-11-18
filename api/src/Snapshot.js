@@ -39,8 +39,6 @@ function buildSnapshot() {
     var r = getMerged_(true);
     var cfg = getConfig_();
     var tz = Session.getScriptTimeZone(), now = new Date();
-    var weather = null;
-    try { weather = getWeather_(cfg); } catch (e) { console.warn('weather skipped: ' + e); }
     writeSnapshot_({
       version: 1,
       updatedAt: now.toISOString(),
@@ -53,7 +51,7 @@ function buildSnapshot() {
         return { code: p.code, name: p.name, badge: p.badge || p.code, swatch: p.swatch || DEFAULT_SWATCH_[p.code] || 'slate' };
       }),
       options: cfg.options,
-      weather: weather,
+      weatherAt: weatherLocation_(cfg), // clients fetch the forecast (see Weather.js)
       items: r.items
     });
     props.setProperty('SNAP_LAST_OK', now.toISOString());

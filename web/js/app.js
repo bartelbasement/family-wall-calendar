@@ -7,6 +7,7 @@ import { startKiosk } from './kiosk.js?v=__V__';
 import { calibrate, clockLabel, setNow, now, parts } from './time.js?v=__V__';
 import { bannerHtml, nowHtml, weekHtml, todosHtml, chipsHtml, itemSheetHtml, daySheetHtml, nightHtml, toastHtml, addSheetHtml } from './render.js?v=__V__';
 import { headHtml, agendaHtml, phoneTodosHtml, tabsHtml } from './phone.js?v=__V__';
+import { createWeather } from './weather.js?v=__V__';
 
 // Night hours and idle time come from settings (snapshot.options), with these defaults.
 const DEFAULT_OPTIONS = { nightStart: '21:30', nightEnd: '06:30', idleMinutes: 2 };
@@ -45,6 +46,7 @@ try { if (!mode.kiosk) ui.filter = localStorage.getItem('wall-filter') || 'all';
 const isPhone = () => mode.setting === 'phone' || (mode.setting === 'auto' && window.innerWidth < 700);
 
 const store = createStore({ onChange: render, demoUrl: demo ? './demo/snapshot.json' : null });
+const wx = createWeather(() => render());
 const settings = createSettings({
   demo,
   getSnap: () => store.state.snap,
@@ -59,7 +61,8 @@ const settings = createSettings({
 function ctxFor(snap) {
   const names = {}, badge = {};
   (snap.people || []).forEach((p) => { names[p.code] = p.name; badge[p.code] = p.badge || p.code; });
-  return { names, badge, weather: snap.weather || null };
+  // The demo snapshot carries sample weather; live snapshots only carry the location.
+  return { names, badge, weather: snap.weather || wx.get() };
 }
 
 function isNight() {
@@ -97,6 +100,7 @@ function render() {
     return;
   }
   calibrate(snap.tzOffset);
+  wx.setLocation(snap.weatherAt, snap.tz);
   applyPeopleColors(snap.people);
   const ctx = ctxFor(snap);
   ctx.pending = new Set(ui.pending.keys());
