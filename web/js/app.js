@@ -450,7 +450,27 @@ function handleAddClick(t) {
   const day = t.closest('[data-add-day]');
   if (day) { f.date = day.dataset.addDay || null; drawAdd(); return true; }
   const tm = t.closest('[data-add-time]');
-  if (tm) { f.time = tm.dataset.addTime || null; drawAdd(); return true; }
+  if (tm) { f.time = tm.dataset.addTime || null; f.timeOpen = false; drawAdd(); return true; }
+  if (t.closest('[data-add-time-other]')) {
+    // Open the in-app time chooser; start from the next whole hour (9 am outside 7 am-9 pm).
+    if (!f.timeOpen && (!f.time || ['09:00', '15:30', '18:30'].includes(f.time))) {
+      let h = new Date().getHours() + 1;
+      if (h < 7 || h > 21) h = 9;
+      f.time = String(h).padStart(2, '0') + ':00';
+    }
+    f.timeOpen = !f.timeOpen || !f.time;
+    drawAdd(); return true;
+  }
+  const tp = t.closest('[data-tp-h], [data-tp-m], [data-tp-ap]');
+  if (tp) {
+    let [h, m] = (f.time || '12:00').split(':').map(Number);
+    const pm = h >= 12;
+    if (tp.dataset.tpH) h = (+tp.dataset.tpH % 12) + (pm ? 12 : 0);
+    if (tp.dataset.tpM) m = +tp.dataset.tpM;
+    if (tp.dataset.tpAp) h = (h % 12) + (tp.dataset.tpAp === 'pm' ? 12 : 0);
+    f.time = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    drawAdd(); return true;
+  }
   if (t.closest('[data-add-submit]')) { submitAdd(); return true; }
   return !!t.closest('.add-sheet'); // swallow other taps inside the form
 }

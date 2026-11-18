@@ -276,6 +276,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .opt[aria-pressed="true"], .opt.on { background: var(--text); color: var(--bg); border-color: var(--text); }
 .opt.picker { position: relative; cursor: pointer; }
 .opt.picker input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+/* in-app time chooser (Add sheet → Time → Other) */
+.tp { margin-top: .6rem; padding: .6rem; border-radius: .9rem; background: var(--surface); display: grid; grid-template-columns: 4rem minmax(0, 1fr); gap: .4rem .5rem; }
+.tp-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: .3rem; }
+.tp-b, .tp-ap { min-height: 2.7rem; padding: 0 .1rem; font-variant-numeric: tabular-nums; }
+@media (max-width: 699px) { .tp-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }  /* phone: 2 rows each */
+.add-sheet { max-height: 94dvh; }
 .add-title {
   width: 100%; font: inherit; font-size: 1.3rem; padding: .8rem 1rem; border-radius: .8rem; border: 2px solid var(--line);
   background: var(--bg); color: var(--text); -webkit-user-select: text; user-select: text;

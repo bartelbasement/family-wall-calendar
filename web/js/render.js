@@ -267,6 +267,30 @@ export function nightHtml(items) {
 export { ymd };
 
 // ---------------------------------------------------------------- quick add
+/** "16:15" -> "4:15 pm" */
+function hm12(t) {
+  const [h, m] = t.split(':').map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
+}
+
+/** In-app time chooser for the Add sheet (replaces the browser's time pop-up). */
+function timePickerHtml(t) {
+  const [h, m] = (t || '12:00').split(':').map(Number);
+  const pm = h >= 12, h12 = h % 12 || 12;
+  const sel = (on) => `aria-pressed="${on ? 'true' : 'false'}"`;
+  const hours = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  const mins = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+  // am/pm stacked on the left; one row of hours and one of minutes on the right.
+  return `<div class="tp" role="group" aria-label="Pick a time">
+    <button class="opt tp-ap" data-tp-ap="am" ${sel(!pm)}>am</button>
+    <div class="tp-grid" aria-label="Hour">${hours.map((x) =>
+      `<button class="opt tp-b" data-tp-h="${x}" ${sel(x === h12)}>${x}</button>`).join('')}</div>
+    <button class="opt tp-ap" data-tp-ap="pm" ${sel(pm)}>pm</button>
+    <div class="tp-grid" aria-label="Minutes">${mins.map((x) =>
+      `<button class="opt tp-b" data-tp-m="${x}" ${sel(x === m)}>:${String(x).padStart(2, '0')}</button>`).join('')}</div>
+  </div>`;
+}
+
 const PRESET_TIMES = [
   { t: null, label: 'All day' },
   { t: '09:00', label: 'Morning 9:00' },
@@ -308,8 +332,8 @@ export function addSheetHtml(f, people) {
     ${isEvent ? `<div class="add-h">Time</div>
     <div class="opts">
       ${PRESET_TIMES.map((x) => `<button class="opt" data-add-time="${x.t || ''}" ${sel(f.time === x.t)}>${esc(x.label)}</button>`).join('')}
-      <label class="opt picker ${!timeKnown ? 'on' : ''}">🕑 Other <input type="time" id="add-time" value="${!timeKnown && f.time ? f.time : ''}" step="300"></label>
-    </div>` : ''}
+      <button class="opt" data-add-time-other ${sel(!timeKnown || f.timeOpen)}>🕑 ${!timeKnown && f.time ? esc(hm12(f.time)) : 'Other'}</button>
+    </div>${f.timeOpen ? timePickerHtml(f.time) : ''}` : ''}
 
     <div class="add-h">What</div>
     <input id="add-title" class="add-title" type="text" maxlength="120" autocomplete="off" enterkeyhint="done"
