@@ -357,11 +357,12 @@ document.addEventListener('pointerdown', () => { ui.lastTouch = Date.now(); }, {
 
 document.addEventListener('click', (e) => {
   if (!$('#night').hidden) { ui.wokeAt = Date.now(); render(); return; }
-  // "Other" day/time buttons are an invisible date/time input over a label. A
-  // touch on the input opens the picker natively; a mouse click in desktop
-  // browsers only focuses the hidden field, so open the picker explicitly.
+  // The day "Other" button is an invisible date input over a label. Real touch
+  // screens open the picker on a tap, but mouse clicks (and DevTools' phone
+  // preview) only focus the hidden field, so always ask for the picker. If it is
+  // already open, browsers ignore the request (or throw, which is caught).
   const pk = e.target.closest('.opt.picker');
-  if (pk && matchMedia('(pointer: fine)').matches) {
+  if (pk) {
     const inp = pk.querySelector('input');
     try { if (inp && inp.showPicker) inp.showPicker(); } catch (err) { /* already open, or unsupported */ }
   }
