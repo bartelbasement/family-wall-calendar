@@ -131,7 +131,7 @@ function saveTripEdits_(edits) {
     var batch = {};
     r.trips.forEach(function (t) { batch[PACK_TRIP_PREFIX_ + t.id] = packJsonChecked_(t); });
     readPackLists_().forEach(function (l) {
-      if (r.lists[l.id]) batch[PACK_LIST_PREFIX_ + l.id] = packJsonChecked_({ id: l.id, name: l.name, icon: l.icon, person: l.person, items: r.lists[l.id] });
+      if (r.lists[l.id]) batch[PACK_LIST_PREFIX_ + l.id] = packJsonChecked_(Object.assign({}, l, { items: r.lists[l.id] }));
     });
     if (Object.keys(batch).length) packProps_().setProperties(batch);
     return { changed: r.trips.length, skipped: r.skipped };

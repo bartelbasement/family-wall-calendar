@@ -4,7 +4,7 @@ import { apiPost } from './api.js?v=__V__';
 import { SWATCHES, DEFAULTS } from './theme.js?v=__V__';
 import { esc } from './render.js?v=__V__';
 import { keepScroll } from './dom.js?v=__V__';
-import { leaveLabel } from './packing.js?v=__V__';
+import { leaveLabel, showStatus, listShown } from './packing.js?v=__V__';
 
 const STYLE_LABELS = { normal: 'Normal', icons: 'Icon in day header', fold: 'One item per day' };
 const IDLE_CHOICES = [1, 2, 3, 5, 10];
@@ -18,6 +18,7 @@ const MAX_PACK_ITEMS = 40;
 const packToEditor = (list) => (list || []).map((l) => ({ ...l, itemsText: (l.items || []).map((x) => x.text).join('\n') }));
 const packFromEditor = (list) => list.map((l) => ({
   id: l.id || '', name: l.name, icon: l.icon, person: l.person || null,
+  showFrom: l.showFrom || '', showUntil: l.showUntil || '',
   items: String(l.itemsText || '').split('\n').map((x) => x.trim()).filter(Boolean)
 }));
 /** Lists being packed: items as text, plus the two save choices. orig spots unchanged rows. */
@@ -127,7 +128,7 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
       if (d.packing) {
         const pks = d.packing;
         body += `<h4 class="set-sub">🎒 Packing lists</h4>
-          <p class="set-hint">Lists the kids can start from the Routines screen when it’s time to pack (swim bag, camping, Grandma’s). Ticks stay until they tap Done. Kids can’t change the items. One item per line, up to ${MAX_PACK_ITEMS}.</p>` +
+          <p class="set-hint">Lists the kids can start from the Routines screen when it’s time to pack (swim bag, camping, Grandma’s). Ticks stay until they tap Done. Kids can’t change the items. One item per line, up to ${MAX_PACK_ITEMS}. Leave the dates empty to always show a list, or set them to keep it off the wall until the trip is close.</p>` +
           pks.map((l, i) => {
             const n = lineCount(l.itemsText);
             return `<div class="set-row person-row rt-edit" style="${swatchVars(swatchOf(l.person))}">
@@ -138,6 +139,11 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
             </div>
             <div class="cal-opts">
               <label>Usually for <select data-set-pk="${i}" data-field="person">${who(l.person).replace('Whole family', 'Anyone (pick when starting)')}</select></label>
+            </div>
+            <div class="cal-opts pk-show-range">
+              <label>Show from <input type="date" data-set-pk="${i}" data-field="showFrom" value="${esc(l.showFrom || '')}"></label>
+              <label>until <input type="date" data-set-pk="${i}" data-field="showUntil" value="${esc(l.showUntil || '')}"></label>
+              <span class="pk-status${listShown(l) ? '' : ' off'}">${esc(showStatus(l))}</span>
             </div>
             <label class="kw">Items <span class="pk-n${n > MAX_PACK_ITEMS ? ' over' : ''}" data-pk-n="${i}">${n}/${MAX_PACK_ITEMS}</span>
               <textarea data-set-pk="${i}" data-field="itemsText" rows="${Math.min(14, Math.max(4, String(l.itemsText || '').split('\n').length + 1))}" placeholder="🩱 Swimsuit&#10;🏊 Goggles&#10;🧴 Towel">${esc(l.itemsText || '')}</textarea></label>
@@ -209,7 +215,7 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
           options: snap.options || { nightStart: '21:30', nightEnd: '06:30', idleMinutes: 2 },
           routines: ((snap.routines && snap.routines.list) || []).map(({ id, name, icon, person, days, from, to, steps }) => ({ id, name, icon, person, days, from, to, steps })),
           // Demo snapshot lists keep their items (the real snapshot only has counts).
-          packing: ((snap.packing && snap.packing.lists) || []).map(({ id, name, icon, person, items }) => ({ id, name, icon, person, items: items || [] })),
+          packing: ((snap.packing && snap.packing.lists) || []).map(({ id, name, icon, person, showFrom, showUntil, items }) => ({ id, name, icon, person, showFrom, showUntil, items: items || [] })),
           trips: JSON.parse(JSON.stringify((snap.packing && snap.packing.trips) || []))
         }, swatches: Object.keys(SWATCHES) };
       } else {
@@ -263,7 +269,8 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
         if (s.data.packing) {
           const lists = packFromEditor(s.data.packing).filter((l) => l.items.length).map((l, i) => {
             const id = l.id || 'demopk' + Date.now() + i;
-            return { id, name: l.name || 'Packing', icon: l.icon, person: l.person, count: l.items.length,
+            if (l.showFrom && l.showUntil && l.showFrom > l.showUntil) [l.showFrom, l.showUntil] = [l.showUntil, l.showFrom];
+            return { id, name: l.name || 'Packing', icon: l.icon, person: l.person, count: l.items.length, showFrom: l.showFrom, showUntil: l.showUntil,
               items: l.items.map((text, j) => ({ id: id + 'i' + j, text })) };
           });
           snap.packing = { lists, trips: (snap.packing && snap.packing.trips) || [] };
@@ -405,6 +412,9 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
       } else if (el.dataset.setPk != null && el.tagName === 'SELECT') {
         s.data.packing[+el.dataset.setPk].person = el.value || null;
         draw();
+      } else if (el.dataset.setPk != null && el.type === 'date') {
+        s.data.packing[+el.dataset.setPk][el.dataset.field] = el.value;
+        draw(); // refresh the "Hidden until …" label
       }
     },
     handleKey(e) {

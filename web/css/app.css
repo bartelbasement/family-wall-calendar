@@ -754,3 +754,6 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 .pk-sheet .done-btn { background: var(--text); color: var(--bg); }
 .pk-trip-who { font-weight: 600; color: var(--muted); }
 .pk-trip-flags { margin-top: .5rem; }
+.pk-show-range { align-items: center; }
+.pk-status { font-size: .9rem; font-weight: 700; color: var(--tx-p); background: var(--bg-p); border-radius: .5rem; padding: .2rem .5rem; }
+.pk-status.off { color: var(--muted); background: var(--line); }

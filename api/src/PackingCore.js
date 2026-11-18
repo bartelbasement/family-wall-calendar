@@ -38,6 +38,23 @@ function pkItems_(texts, prevItems, newId) {
   });
 }
 
+/** A real 'yyyy-MM-dd' or ''. */
+function pkDate_(s) {
+  s = String(s || '');
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) && pkAddDays_(s, 0) === s ? s : '';
+}
+
+/** [from, until], either may be ''; swapped if entered backwards. */
+function pkShowRange_(from, until) {
+  from = pkDate_(from); until = pkDate_(until);
+  return from && until && from > until ? [until, from] : [from, until];
+}
+
+/** Whether a saved list belongs in the wall's Pack row today. */
+function packListShown(l, today) {
+  return (!l.showFrom || today >= l.showFrom) && (!l.showUntil || today <= l.showUntil);
+}
+
 /** Validates saved lists from the settings editor. Lists with no items are dropped. */
 function cleanPackLists(input, prev, codes, newId) {
   var prevById = {};
@@ -48,11 +65,14 @@ function cleanPackLists(input, prev, codes, newId) {
     var id = PACK_ID_RE_.test(String(l.id || '')) && !seen[l.id] ? String(l.id) : newId();
     seen[id] = true;
     var old = prevById[id];
+    var show = pkShowRange_(l.showFrom, l.showUntil);
     return {
       id: id,
       name: pkText_(l.name, 30) || 'Packing',
       icon: pkText_(l.icon, 4),
       person: codes.indexOf(l.person) !== -1 ? l.person : null,
+      showFrom: show[0],
+      showUntil: show[1],
       items: pkItems_(l.items, old && old.items, newId).map(function (it) { return { id: it.id, text: it.text }; })
     };
   }).filter(function (l) { return l.items.length; });
@@ -116,6 +136,7 @@ function editTrip(trip, texts, newId) {
 /** The saved list with its items replaced by the trip's (for "also update the saved list"). */
 function listFromTrip(list, trip) {
   return { id: list.id, name: list.name, icon: list.icon, person: list.person,
+    showFrom: list.showFrom || '', showUntil: list.showUntil || '',
     items: trip.items.map(function (it) { return { id: it.id, text: it.text }; }) };
 }
 
@@ -155,7 +176,8 @@ function applyTripEdits(trips, edits, newId) {
 function packingView(lists, trips) {
   return {
     lists: (lists || []).map(function (l) {
-      return { id: l.id, name: l.name, icon: l.icon, person: l.person, count: l.items.length };
+      return { id: l.id, name: l.name, icon: l.icon, person: l.person, count: l.items.length,
+        showFrom: l.showFrom || '', showUntil: l.showUntil || '' };
     }),
     trips: (trips || []).slice().sort(function (a, b) {
       return (a.leave || '9999').localeCompare(b.leave || '9999') ||
@@ -167,7 +189,7 @@ function packingView(lists, trips) {
 if (typeof module !== 'undefined') {
   module.exports = {
     cleanPackLists: cleanPackLists, cleanLeave: cleanLeave, startTrips: startTrips, tickTrip: tickTrip,
-    editTrip: editTrip, listFromTrip: listFromTrip, applyTripEdits: applyTripEdits, packingView: packingView,
+    editTrip: editTrip, packListShown: packListShown, listFromTrip: listFromTrip, applyTripEdits: applyTripEdits, packingView: packingView,
     PACK_TRIPS_MAX_: PACK_TRIPS_MAX_
   };
 }

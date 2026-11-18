@@ -78,9 +78,25 @@ export function tripCardHtml(t, byCode, ui) {
   </section>`;
 }
 
-/** The "Pack:" row under the grid. */
+/** Whether a saved list belongs in the Pack row today (same rule as the API's packListShown). */
+export function listShown(l, today = todayYmd()) {
+  return (!l.showFrom || today >= l.showFrom) && (!l.showUntil || today <= l.showUntil);
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const dayLabel = (ymd) => `${DAY_SHORT[dowOf(ymd)]} ${MONTHS[Number(ymd.slice(5, 7)) - 1]} ${Number(ymd.slice(8))}`;
+
+/** For Settings: 'Always shown' | 'Showing now' | 'Showing until Fri Aug 14' | 'Hidden until …' | 'Hidden (ended …)' */
+export function showStatus(l, today = todayYmd()) {
+  if (!l.showFrom && !l.showUntil) return 'Always shown';
+  if (l.showFrom && today < l.showFrom) return 'Hidden until ' + dayLabel(l.showFrom);
+  if (l.showUntil && today > l.showUntil) return 'Hidden (ended ' + dayLabel(l.showUntil) + ')';
+  return l.showUntil ? 'Showing until ' + dayLabel(l.showUntil) : 'Showing now';
+}
+
+/** The "Pack:" row under the grid: saved lists inside their show range. */
 export function packRowHtml(packing) {
-  const lists = (packing && packing.lists) || [];
+  const lists = ((packing && packing.lists) || []).filter((l) => listShown(l));
   if (!lists.length) return '';
   return `<div class="pk-row"><span class="pk-row-h">Pack:</span>${lists.map((l) =>
     `<button class="opt pk-start" data-pack-start="${esc(l.id)}"><span>${esc(l.icon || '🎒')}</span>${esc(l.name)}</button>`).join('')}</div>`;

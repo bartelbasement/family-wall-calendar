@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { cleanPackLists, cleanLeave, startTrips, tickTrip, editTrip, listFromTrip, applyTripEdits, packingView } = require('../src/PackingCore.js');
+const { cleanPackLists, packListShown, cleanLeave, startTrips, tickTrip, editTrip, listFromTrip, applyTripEdits, packingView } = require('../src/PackingCore.js');
 
 const codes = ['S', 'R', 'C', 'M', 'D', 'P', 'F'];
 const idMaker = (p = 'id') => { let n = 0; return () => p + String(++n).padStart(4, '0'); };
@@ -16,7 +16,7 @@ test('cleanPackLists validates fields, drops empty lists and keeps item ids by t
     { name: 'Empty', items: [' '] }
   ], prev, codes, idMaker());
   assert.equal(out.length, 2);
-  assert.deepEqual(out[0], { id: 'lcamp', name: 'Camping', icon: '⛺', person: null,
+  assert.deepEqual(out[0], { id: 'lcamp', name: 'Camping', icon: '⛺', person: null, showFrom: '', showUntil: '',
     items: [{ id: 'id0001', text: 'Flashlight' }, { id: 'old1', text: 'sleeping BAG' }, { id: 'id0002', text: 'Hat' }] });
   assert.equal(out[1].name, 'Packing');
 });
@@ -75,7 +75,7 @@ test('editTrip keeps ticks on unchanged items and adds new ones unticked', () =>
   assert.throws(() => editTrip(t, [' '], idMaker()), /at least one item/);
 
   const saved = listFromTrip(swim, e);
-  assert.deepEqual(saved, { id: 'lswim', name: 'Swim bag', icon: '🏊', person: 'S',
+  assert.deepEqual(saved, { id: 'lswim', name: 'Swim bag', icon: '🏊', person: 'S', showFrom: '', showUntil: '',
     items: [{ id: 'i1', text: 'towel' }, { id: 'i3', text: 'Swimsuit' }, { id: 'n0001', text: 'Fishing rod' }] });
 });
 
@@ -83,7 +83,7 @@ test('packingView strips saved items and sorts trips by leave date, undated last
   const trip = (id, leave, started) => ({ id, leave, started, items: [] });
   const v = packingView([swim], [trip('tc', '', '2026-11-10'), trip('tb', '2026-11-25', '2026-11-18'),
     trip('ta', '2026-11-20', '2026-11-18'), trip('td', '', '2026-11-01')]);
-  assert.deepEqual(v.lists, [{ id: 'lswim', name: 'Swim bag', icon: '🏊', person: 'S', count: 3 }]);
+  assert.deepEqual(v.lists, [{ id: 'lswim', name: 'Swim bag', icon: '🏊', person: 'S', count: 3, showFrom: '', showUntil: '' }]);
   assert.deepEqual(v.trips.map((t) => t.id), ['ta', 'tb', 'td', 'tc']);
   assert.deepEqual(packingView(null, null), { lists: [], trips: [] });
 });
@@ -111,4 +111,23 @@ test('applyTripEdits edits one copy, or every copy of the same list, and can upd
   const gone = applyTripEdits(trips, [{ tripId: 'ended', items: ['x'] }, null], idMaker());
   assert.deepEqual(gone, { trips: [], lists: {}, skipped: 2 });
   assert.throws(() => applyTripEdits(trips, [{ tripId: a.id, items: [] }], idMaker()), /at least one item/);
+});
+
+test('saved lists keep a valid show-from/until range, swapped if backwards', () => {
+  const out = cleanPackLists([
+    { name: 'Camping', showFrom: '2027-08-10', showUntil: '2027-08-20', items: ['Tent'] },
+    { name: 'Backwards', showFrom: '2027-08-20', showUntil: '2027-08-10', items: ['Tent'] },
+    { name: 'Junk', showFrom: '2027-02-30', showUntil: 'soon', items: ['Tent'] }
+  ], [], codes, idMaker());
+  assert.deepEqual(out.map((l) => [l.showFrom, l.showUntil]), [['2027-08-10', '2027-08-20'], ['2027-08-10', '2027-08-20'], ['', '']]);
+});
+
+test('packListShown honours either end of the range', () => {
+  const l = (showFrom, showUntil) => ({ showFrom, showUntil });
+  assert.equal(packListShown(l('', ''), '2027-08-01'), true);
+  assert.equal(packListShown(l('2027-08-10', ''), '2027-08-09'), false);
+  assert.equal(packListShown(l('2027-08-10', ''), '2027-08-10'), true);
+  assert.equal(packListShown(l('', '2027-08-20'), '2027-08-20'), true);
+  assert.equal(packListShown(l('', '2027-08-20'), '2027-08-21'), false);
+  assert.equal(packListShown({}, '2027-08-21'), true); // lists saved before this feature
 });
