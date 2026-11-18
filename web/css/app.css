@@ -249,3 +249,14 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .toast .bar { position: absolute; left: 0; bottom: 0; height: .25rem; background: #9FD36B; width: 100%; transform-origin: left; animation: toastbar linear forwards; }
 .toast.err { background: #791F1F; color: #fff; padding: .9rem 1.2rem; }
 @keyframes toastbar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* to-do strip: › hint and fade when more cards are off-screen */
+.todos-wrap { position: relative; min-width: 0; }
+.todos-wrap::after {
+  content: '›'; position: absolute; right: 0; top: 0; bottom: 0; width: 3rem; display: grid; place-items: center end;
+  font-size: 2rem; color: var(--muted); pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--bg) 70%);
+}
+.todos-wrap.at-end::after { content: none; }
+.todos { padding-right: 2.5rem; scroll-snap-type: x proximity; }
+.todo { scroll-snap-align: start; }

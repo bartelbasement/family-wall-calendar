@@ -142,7 +142,7 @@ export function todosHtml(items, filter, ctx) {
   const todos = items.filter((x) => x.section === 'todo' && !x.done && visible(x, filter))
     .sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
   if (!todos.length) return `<span class="todos-h">To-do</span><span class="todos-none">All done 🎉</span>`;
-  return `<span class="todos-h">To-do</span>` + todos.map((x) => {
+  return `<span class="todos-h">To-do · ${todos.length}</span>` + todos.map((x) => {
     const overdue = x.date && x.date < today;
     const due = !x.date ? '' : overdue ? 'Overdue' : x.date === today ? 'Due today' : 'Due ' + dayLabel(x.date);
     const pending = ctx.pending && ctx.pending.has(x.id);

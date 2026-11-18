@@ -90,7 +90,10 @@ function render() {
   wk.innerHTML = weekHtml(items, ui.filter, ctx);
   wk.scrollLeft = keep;
   updateWeekHint();
-  $('#todos').innerHTML = todosHtml(items, ui.filter, ctx);
+  const td = $('#todos'), keepTd = td.scrollLeft;
+  td.innerHTML = todosHtml(items, ui.filter, ctx);
+  td.scrollLeft = keepTd;
+  updateHints();
   $('#chips').innerHTML = chipsHtml(snap.people || [], ui.filter);
 
   const stale = store.isStale() || !!error;
@@ -116,11 +119,26 @@ function renderSheet(items, ctx) {
   scrim.hidden = false;
 }
 
-function updateWeekHint() {
-  const wk = $('#week');
-  $('#week-wrap').classList.toggle('at-end', wk.scrollLeft + wk.clientWidth >= wk.scrollWidth - 4);
+// Sideways strips (days, to-dos): show a › hint while more is off-screen, and
+// let a normal mouse wheel scroll them sideways on PCs.
+function updateHints() {
+  for (const [stripSel, wrapSel] of [['#week', '#week-wrap'], ['#todos', '#todos-wrap']]) {
+    const el = $(stripSel);
+    $(wrapSel).classList.toggle('at-end', el.scrollLeft + el.clientWidth >= el.scrollWidth - 4);
+  }
 }
-$('#week').addEventListener('scroll', updateWeekHint, { passive: true });
+const updateWeekHint = updateHints;
+for (const sel of ['#week', '#todos']) {
+  const el = $(sel);
+  el.addEventListener('scroll', updateHints, { passive: true });
+  el.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && el.scrollWidth > el.clientWidth) {
+      e.preventDefault();
+      el.scrollBy({ left: e.deltaY, behavior: 'auto' });
+    }
+  }, { passive: false });
+}
+addEventListener('resize', updateHints);
 
 // ---------------------------------------------------------------- interaction
 document.addEventListener('pointerdown', () => { ui.lastTouch = Date.now(); }, { passive: true });
