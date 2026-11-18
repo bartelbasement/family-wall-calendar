@@ -4,6 +4,7 @@ import { apiPost } from './api.js?v=__V__';
 import { SWATCHES, DEFAULTS } from './theme.js?v=__V__';
 import { esc } from './render.js?v=__V__';
 import { keepScroll } from './dom.js?v=__V__';
+import { leaveLabel } from './packing.js?v=__V__';
 
 const STYLE_LABELS = { normal: 'Normal', icons: 'Icon in day header', fold: 'One item per day' };
 const IDLE_CHOICES = [1, 2, 3, 5, 10];
@@ -19,6 +20,11 @@ const packFromEditor = (list) => list.map((l) => ({
   id: l.id || '', name: l.name, icon: l.icon, person: l.person || null,
   items: String(l.itemsText || '').split('\n').map((x) => x.trim()).filter(Boolean)
 }));
+/** Lists being packed: items as text, plus the two save choices. orig spots unchanged rows. */
+const tripsToEditor = (list) => (list || []).map((t) => {
+  const itemsText = (t.items || []).map((x) => x.text).join('\n');
+  return { ...t, itemsText, orig: itemsText, saveToList: false, allCopies: false };
+});
 const lineCount = (text) => String(text || '').split('\n').filter((x) => x.trim()).length;
 
 /** Routines as the editor holds them: steps as one text block, one per line. */
@@ -139,6 +145,26 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
           }).join('') +
           `<button class="opt rt-add" data-set-pk-add ${pks.length >= MAX_PACK_LISTS ? 'disabled' : ''}>＋ Add packing list</button>`;
       }
+      if (d.trips && d.trips.length) {
+        const nameOf = (code) => { const p = d.people.find((x) => x.code === code); return p ? p.name : 'Anyone'; };
+        const saved = new Set((d.packing || []).map((l) => l.id).filter(Boolean));
+        body += `<h4 class="set-sub">Being packed now</h4>
+          <p class="set-hint">Add or remove items on a list a kid is packing. Items you keep stay ticked.</p>` +
+          d.trips.map((t, i) => {
+            const n = lineCount(t.itemsText);
+            const copies = d.trips.filter((x) => x.listId === t.listId).length;
+            const flag = (f, label, ok) => ok ? `<button class="opt" data-set-trip-flag="${i}" data-flag="${f}" aria-pressed="${!!t[f]}">${label}</button>` : '';
+            return `<div class="set-row person-row rt-edit" style="${swatchVars(swatchOf(t.person))}">
+              <div class="set-label">${esc(t.icon || '🎒')} ${esc(t.name)} <span class="pk-trip-who">· ${esc(nameOf(t.person))} · ${esc(leaveLabel(t.leave))}</span></div>
+              <label class="kw">Items <span class="pk-n${n > MAX_PACK_ITEMS ? ' over' : ''}" data-trip-n="${i}">${n}/${MAX_PACK_ITEMS}</span>
+                <textarea data-set-trip="${i}" rows="${Math.min(14, Math.max(4, String(t.itemsText || '').split('\n').length + 1))}">${esc(t.itemsText || '')}</textarea></label>
+              <div class="opts pk-trip-flags">
+                ${flag('allCopies', `Change all ${copies} ${esc(t.name)} lists`, copies > 1)}
+                ${flag('saveToList', 'Also update the saved list', saved.has(t.listId))}
+              </div>
+            </div>`;
+          }).join('');
+      }
     } else {
       const o = d.options;
       body = `<div class="set-row">
@@ -183,7 +209,8 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
           options: snap.options || { nightStart: '21:30', nightEnd: '06:30', idleMinutes: 2 },
           routines: ((snap.routines && snap.routines.list) || []).map(({ id, name, icon, person, days, from, to, steps }) => ({ id, name, icon, person, days, from, to, steps })),
           // Demo snapshot lists keep their items (the real snapshot only has counts).
-          packing: ((snap.packing && snap.packing.lists) || []).map(({ id, name, icon, person, items }) => ({ id, name, icon, person, items: items || [] }))
+          packing: ((snap.packing && snap.packing.lists) || []).map(({ id, name, icon, person, items }) => ({ id, name, icon, person, items: items || [] })),
+          trips: JSON.parse(JSON.stringify((snap.packing && snap.packing.trips) || []))
         }, swatches: Object.keys(SWATCHES) };
       } else {
         res = await apiPost('getSettings', { pin: s.pin });
@@ -192,6 +219,7 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
       // null (an API without packing lists) hides the section and is never saved,
       // so an older API can't be told to wipe the lists.
       s.data.packing = Array.isArray(s.data.packing) ? packToEditor(s.data.packing) : null;
+      s.data.trips = Array.isArray(s.data.trips) ? tripsToEditor(s.data.trips) : null;
       s.swatches = res.swatches; s.stage = 'edit'; s.tab = s.wantTab || 'calendars';
     } catch (e) {
       const m = e.message;
@@ -203,7 +231,13 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
   }
 
   async function save() {
-    const long = (s.data.packing || []).find((l) => lineCount(l.itemsText) > MAX_PACK_ITEMS);
+    const long = (s.data.packing || []).concat(s.data.trips || []).find((l) => lineCount(l.itemsText) > MAX_PACK_ITEMS);
+    const emptyTrip = (s.data.trips || []).find((t) => !lineCount(t.itemsText));
+    if (emptyTrip) {
+      s.tab = 'routines';
+      s.error = `“${emptyTrip.name}” being packed needs at least one item. To stop it, use Stop packing on its card.`;
+      draw(); return;
+    }
     if (long) {
       s.tab = 'routines';
       s.error = `“${long.name || 'A packing list'}” has more than ${MAX_PACK_ITEMS} items. Shorten it or split it in two.`;
@@ -234,8 +268,10 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
           });
           snap.packing = { lists, trips: (snap.packing && snap.packing.trips) || [] };
         }
+        demoTripEdits(snap, tripEdits());
       } else {
-        const settings = { ...s.data, routines: fromEditor(s.data.routines) };
+        const settings = { ...s.data, routines: fromEditor(s.data.routines), tripEdits: tripEdits() };
+        delete settings.trips;
         if (s.data.packing) settings.packing = packFromEditor(s.data.packing); else delete settings.packing;
         await apiPost('saveSettings', { pin: s.pin, settings });
       }
@@ -246,6 +282,31 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
       s.error = e.message === 'bad_pin' || e.message === 'pin_locked' ? 'PIN no longer valid. Close and try again.' : 'Couldn’t save (' + e.message + ').';
       draw();
     }
+  }
+
+  /** Rows that changed, or that should be copied to the saved list. */
+  function tripEdits() {
+    return (s.data.trips || []).filter((t) => t.itemsText !== t.orig || t.saveToList).map((t) => ({
+      tripId: t.id, items: String(t.itemsText).split('\n').map((x) => x.trim()).filter(Boolean),
+      saveToList: !!t.saveToList, allCopies: !!t.allCopies
+    }));
+  }
+
+  /** Demo stand-in for the server's applyTripEdits (ticks kept by item text). */
+  function demoTripEdits(snap, edits) {
+    const P = snap.packing;
+    if (!P || !edits.length) return;
+    edits.forEach((e) => {
+      const trip = P.trips.find((t) => t.id === e.tripId);
+      if (!trip) return;
+      (e.allCopies ? P.trips.filter((t) => t.listId === trip.listId) : [trip]).forEach((t) => {
+        const was = {};
+        t.items.forEach((x) => { was[x.text.toLowerCase()] = x; });
+        t.items = e.items.map((text, j) => { const w = was[text.toLowerCase()]; return { id: w ? w.id : t.id + 'e' + Date.now() + j, text, done: !!(w && w.done) }; });
+      });
+      const list = e.saveToList && P.lists.find((l) => l.id === trip.listId);
+      if (list) { list.items = trip.items.map(({ id, text }) => ({ id, text })); list.count = list.items.length; }
+    });
   }
 
   function close() { s = null; onClose(); }
@@ -296,6 +357,8 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
       if (pkDel && s.data.packing) {
         s.data.packing.splice(+pkDel.dataset.setPkDel, 1); draw(); return true;
       }
+      const tf = t.closest('[data-set-trip-flag]');
+      if (tf && s.data.trips) { const tr = s.data.trips[+tf.dataset.setTripFlag]; tr[tf.dataset.flag] = !tr[tf.dataset.flag]; draw(); return true; }
       const idle = t.closest('[data-set-idle]');
       if (idle) { s.data.options.idleMinutes = Number(idle.dataset.setIdle); draw(); return true; }
       if (t.closest('[data-set-save]')) { if (s.stage === 'edit') save(); return true; }
@@ -315,6 +378,11 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
         s.data.options[el.dataset.setOpt] = el.value;
       } else if (el.dataset.setRt != null && el.tagName !== 'SELECT') {
         s.data.routines[+el.dataset.setRt][el.dataset.field] = el.value;
+      } else if (el.dataset.setTrip != null) {
+        const i = +el.dataset.setTrip;
+        s.data.trips[i].itemsText = el.value;
+        const n = lineCount(el.value), tag = scrim().querySelector(`[data-trip-n="${i}"]`);
+        if (tag) { tag.textContent = `${n}/${MAX_PACK_ITEMS}`; tag.classList.toggle('over', n > MAX_PACK_ITEMS); }
       } else if (el.dataset.setPk != null && el.tagName !== 'SELECT') {
         const i = +el.dataset.setPk;
         s.data.packing[i][el.dataset.field] = el.value;

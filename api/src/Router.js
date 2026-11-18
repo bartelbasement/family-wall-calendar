@@ -59,8 +59,7 @@ var POST_ACTIONS = {
   routineTick: function (b) { return routineTick_(b); },
   packStart: function (b) { return packStart_(b); },
   packTick: function (b) { return packTick_(b); },
-  packEnd: function (b) { return packEnd_(b); },
-  packEdit: function (b) { return packEdit_(b); }
+  packEnd: function (b) { return packEnd_(b); }
 };
 
 function doGet(e) {

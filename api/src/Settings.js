@@ -6,6 +6,7 @@
  *   options:   night hours, idle minutes
  *   routines:  stored separately in ROUTINES_V1 (see Routines.js), edited here too
  *   packing:   saved packing lists, stored separately (see Packing.js), edited here too
+ *   tripEdits: grown-up changes to lists being packed (saved only, never read back)
  * Reads and writes require the parent PIN (Script Property SETTINGS_PIN).
  */
 
@@ -84,7 +85,7 @@ function getSettingsForEditor_(body) {
     return { code: p.code, name: p.name, badge: p.badge || p.code, swatch: p.swatch || DEFAULT_SWATCH_[p.code] || 'slate',
       keywords: p.keywords || [] };
   });
-  return { ok: true, settings: { calendars: calendars, people: people, options: cfg.options, routines: readRoutines_(), packing: readPackLists_() }, swatches: SWATCHES_ };
+  return { ok: true, settings: { calendars: calendars, people: people, options: cfg.options, routines: readRoutines_(), packing: readPackLists_(), trips: packingView([], readTrips_()).trips }, swatches: SWATCHES_ };
 }
 
 function cleanText_(s, max) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, max); }
@@ -129,13 +130,14 @@ function saveSettings_(body) {
   if (json.length > 9000) throw new Error('settings too large');
   if (Array.isArray(input.routines)) saveRoutines_(input.routines, cfg); // validated first: a bad list saves nothing
   if (Array.isArray(input.packing)) savePackLists_(input.packing, cfg);
+  var tripResult = Array.isArray(input.tripEdits) && input.tripEdits.length ? saveTripEdits_(input.tripEdits) : null;
   PropertiesService.getScriptProperties().setProperty(SETTINGS_PROP_, json);
 
   var cache = CacheService.getScriptCache();
   cache.remove(CAL_CACHE_KEY_);
   cache.remove(TRELLO_CACHE_KEY_);
   buildSnapshot();
-  return { ok: true, savedAt: settings.savedAt };
+  return { ok: true, savedAt: settings.savedAt, trips: tripResult };
 }
 
 /** Layers saved settings over a config object (called from getConfig_). */

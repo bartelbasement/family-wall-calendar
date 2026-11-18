@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { cleanPackLists, cleanLeave, startTrips, tickTrip, editTrip, listFromTrip, packingView } = require('../src/PackingCore.js');
+const { cleanPackLists, cleanLeave, startTrips, tickTrip, editTrip, listFromTrip, applyTripEdits, packingView } = require('../src/PackingCore.js');
 
 const codes = ['S', 'R', 'C', 'M', 'D', 'P', 'F'];
 const idMaker = (p = 'id') => { let n = 0; return () => p + String(++n).padStart(4, '0'); };
@@ -86,4 +86,29 @@ test('packingView strips saved items and sorts trips by leave date, undated last
   assert.deepEqual(v.lists, [{ id: 'lswim', name: 'Swim bag', icon: '🏊', person: 'S', count: 3 }]);
   assert.deepEqual(v.trips.map((t) => t.id), ['ta', 'tb', 'td', 'tc']);
   assert.deepEqual(packingView(null, null), { lists: [], trips: [] });
+});
+
+test('applyTripEdits edits one copy, or every copy of the same list, and can update the saved list', () => {
+  const mk = idMaker('t');
+  let [a, b] = startTrips(swim, ['R', 'C'], '', '2026-11-18', codes, mk);
+  const [other] = startTrips({ ...swim, id: 'lcamp' }, ['R'], '', '2026-11-18', codes, mk);
+  a = tickTrip(a, 'i1', true);
+  b = tickTrip(b, 'i2', true);
+  const trips = [a, b, other];
+
+  const one = applyTripEdits(trips, [{ tripId: a.id, items: ['Towel', 'Goggles', 'Snack'] }], idMaker('n'));
+  assert.deepEqual(one.trips.map((t) => t.id), [a.id]);
+  assert.deepEqual(one.trips[0].items.map((x) => [x.text, x.done]), [['Towel', true], ['Goggles', false], ['Snack', false]]);
+  assert.deepEqual(one.lists, {});
+
+  const all = applyTripEdits(trips, [{ tripId: b.id, items: ['Towel', 'Goggles', 'Snack'], allCopies: true, saveToList: true }], idMaker('n'));
+  assert.deepEqual(all.trips.map((t) => t.id), [a.id, b.id]); // not the camping trip
+  assert.deepEqual(all.trips[0].items.map((x) => x.done), [true, false, false]); // each keeps its own ticks
+  assert.deepEqual(all.trips[1].items.map((x) => x.done), [false, true, false]);
+  assert.deepEqual(all.lists.lswim.map((x) => x.text), ['Towel', 'Goggles', 'Snack']);
+  assert.deepEqual(all.lists.lswim.map((x) => x.id), all.trips[1].items.map((x) => x.id));
+
+  const gone = applyTripEdits(trips, [{ tripId: 'ended', items: ['x'] }, null], idMaker());
+  assert.deepEqual(gone, { trips: [], lists: {}, skipped: 2 });
+  assert.throws(() => applyTripEdits(trips, [{ tripId: a.id, items: [] }], idMaker()), /at least one item/);
 });

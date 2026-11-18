@@ -120,6 +120,35 @@ function listFromTrip(list, trip) {
 }
 
 /**
+ * Grown-up edits from Settings, applied to the trips in progress.
+ * edits: [{ tripId, items: [text], saveToList, allCopies }]
+ *   allCopies: every trip started from the same saved list gets these items
+ *              (each keeps its own ticks on unchanged items).
+ *   saveToList: the saved list takes the edited trip's items.
+ * Trips that have ended since Settings opened are skipped.
+ * Returns { trips: changed trips, lists: { listId: items }, skipped }.
+ */
+function applyTripEdits(trips, edits, newId) {
+  var byId = {}, changed = {}, order = [], lists = {}, skipped = 0;
+  (trips || []).forEach(function (t) { byId[t.id] = t; });
+  (edits || []).slice(0, PACK_TRIPS_MAX_).forEach(function (e) {
+    var trip = e && byId[e.tripId];
+    if (!trip) { skipped++; return; }
+    var targets = e.allCopies
+      ? (trips || []).filter(function (t) { return t.listId === trip.listId; })
+      : [trip];
+    targets.forEach(function (t) {
+      if (!changed[t.id]) order.push(t.id);
+      changed[t.id] = editTrip(changed[t.id] || t, e.items, newId);
+    });
+    if (e.saveToList) {
+      lists[trip.listId] = changed[trip.id].items.map(function (it) { return { id: it.id, text: it.text }; });
+    }
+  });
+  return { trips: order.map(function (id) { return changed[id]; }), lists: lists, skipped: skipped };
+}
+
+/**
  * What the wall gets: saved lists without their items (just enough for the
  * "Pack:" row) and trips sorted by leave date, undated ones last, then by start.
  */
@@ -138,7 +167,7 @@ function packingView(lists, trips) {
 if (typeof module !== 'undefined') {
   module.exports = {
     cleanPackLists: cleanPackLists, cleanLeave: cleanLeave, startTrips: startTrips, tickTrip: tickTrip,
-    editTrip: editTrip, listFromTrip: listFromTrip, packingView: packingView,
+    editTrip: editTrip, listFromTrip: listFromTrip, applyTripEdits: applyTripEdits, packingView: packingView,
     PACK_TRIPS_MAX_: PACK_TRIPS_MAX_
   };
 }

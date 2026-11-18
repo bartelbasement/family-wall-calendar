@@ -752,3 +752,5 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 .pk-days .opt { min-width: 5.5rem; justify-content: center; }
 .pk-sheet .who-actions { margin-top: 1.1rem; }
 .pk-sheet .done-btn { background: var(--text); color: var(--bg); }
+.pk-trip-who { font-weight: 600; color: var(--muted); }
+.pk-trip-flags { margin-top: .5rem; }

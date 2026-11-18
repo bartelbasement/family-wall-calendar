@@ -4,8 +4,8 @@
  * A Script Property holds at most 9 KB, so each saved list and each trip gets
  * its own property: PACK_L_<id> (saved list) and PACK_T_<id> (trip). The order
  * of saved lists is kept in PACK_ORDER. Saved lists are edited in Settings
- * (PIN). Kids start, tick and end trips from the wall without the PIN; only
- * packEdit (changing a trip's items) needs it. Every write patches the
+ * (PIN). Kids start, tick and end trips from the wall without the PIN;
+ * grown-ups change a trip's items in Settings (saveTripEdits_). Every write patches the
  * snapshot straight away, like the routine ticks.
  */
 
@@ -118,22 +118,24 @@ function packEnd_(body) {
 }
 
 /**
- * POST packEdit { pin, tripId, items: [text], saveToList, requestId }
- * Grown-ups only. saveToList also copies the new items into the saved list.
+ * Grown-up edits to trips in progress, sent with saveSettings (the PIN is
+ * already checked there). Locked so a kid's tick can't land in between the
+ * read and the write. Saved lists are written after savePackLists_, so
+ * "also update the saved list" wins over an edit of that list in the same save.
  */
-function packEdit_(body) {
-  checkPin_(body.pin);
-  return once_(body.requestId, function () {
-    var trip = editTrip(readTrip_(body.tripId), body.items, routineId_);
-    writeTrip_(trip);
-    var warning = null;
-    if (body.saveToList) {
-      var list = readPackLists_().filter(function (l) { return l.id === trip.listId; })[0];
-      if (list) packProps_().setProperty(PACK_LIST_PREFIX_ + list.id, packJsonChecked_(listFromTrip(list, trip)));
-      else warning = 'The saved list was deleted, so only this trip was changed.';
-    }
-    var out = patchPackingSnapshot_();
-    if (warning) out.warning = warning;
-    return out;
-  });
+function saveTripEdits_(edits) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var r = applyTripEdits(readTrips_(), edits, routineId_);
+    var batch = {};
+    r.trips.forEach(function (t) { batch[PACK_TRIP_PREFIX_ + t.id] = packJsonChecked_(t); });
+    readPackLists_().forEach(function (l) {
+      if (r.lists[l.id]) batch[PACK_LIST_PREFIX_ + l.id] = packJsonChecked_({ id: l.id, name: l.name, icon: l.icon, person: l.person, items: r.lists[l.id] });
+    });
+    if (Object.keys(batch).length) packProps_().setProperties(batch);
+    return { changed: r.trips.length, skipped: r.skipped };
+  } finally {
+    lock.releaseLock();
+  }
 }
