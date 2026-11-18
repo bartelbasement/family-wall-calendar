@@ -42,17 +42,19 @@ export function menuSheetHtml(st) {
  * Labels are always in the markup; the collapsed panel just clips them.
  * (The schedule view is built but not offered on the wall.)
  * @param gro open grocery count, or null when groceries aren't set up
+ * @param todos open to-do count (all people)
  */
-export function railHtml(view, open, st, gro) {
+export function railHtml(view, open, st, gro, todos) {
   const btn = (attrs, ic, label, sub, cls = '', badge = '') =>
     `<button class="rail-btn${cls}" ${attrs} aria-label="${label}" title="${label}"><span class="ic">${ic}${badge}</span>` +
     `<span class="rl">${label}${sub ? `<small>${sub}</small>` : ''}</span></button>`;
-  const nav = (v, ic, label) => btn(`data-view="${v}"${view === v ? ' aria-current="page"' : ''}`, ic, label, '', view === v ? ' on' : '');
+  const nav = (v, ic, label, sub = '', badge = '') => btn(`data-view="${v}"${view === v ? ' aria-current="page"' : ''}`, ic, label, sub, view === v ? ' on' : '', badge);
   return `<div class="rail-top">
       ${btn(`data-rail-toggle aria-expanded="${open}"`, '<img src="icons/icon-192.png" alt="">', 'Family', open ? 'Tap to close' : '', ' rail-home')}
       ${open && st.warn ? `<p class="rail-warn">${esc(st.warn)}</p>` : ''}
       ${nav('week', '▦', 'Calendar')}
       ${nav('people', '👥', 'People')}
+      ${nav('todos', '☑', 'To-dos', todos ? todos + ' open' : 'All done', todos ? `<b class="rail-count">${todos}</b>` : '')}
       ${gro == null ? '' : btn('data-grocery-open', '🛒', 'Grocery', gro ? gro + ' to get' : 'All done', '', gro ? `<b class="rail-count">${gro}</b>` : '')}
     </div>
     <div class="rail-foot">
@@ -127,6 +129,71 @@ function layoutLanes(evs) {
   });
   if (cluster.length) flush();
   return out;
+}
+
+// ---------------------------------------------------------------- to-dos view
+const TODO_BUCKETS = [
+  ['now', 'Overdue & today'], ['week', 'This week'], ['later', 'Later'], ['none', 'No due date']
+];
+
+function todoBucket(x, today, weekEnd) {
+  if (!x.date) return 'none';
+  if (x.date <= today) return 'now';
+  return x.date <= weekEnd ? 'week' : 'later';
+}
+
+/** One to-do card: tick box (completes, with undo) and the rest opens its pop-up. */
+function todoCard(x, ctx, today, colour) {
+  const overdue = x.date && x.date < today;
+  const due = !x.date ? '' : overdue ? 'Overdue · ' + dayLabel(x.date) : x.date === today ? 'Due today' : 'Due ' + dayLabel(x.date);
+  const pending = ctx.pending && ctx.pending.has(x.id);
+  return `<button class="tv-item p-${colour}${pending ? ' pending' : ''}" data-id="${esc(x.id)}">
+    <span class="box" data-complete="${esc(x.id)}" role="checkbox" aria-checked="${pending}" aria-label="Mark done">${pending ? '✓' : ''}</span>
+    <span class="tv-main"><span class="ti">${esc(x.title)}</span>
+    <span class="tv-sub">${badges(x.people, ctx)}${due ? ` <span class="${overdue ? 'overdue' : ''}">${esc(due)}</span>` : ''}${x.change ? ` · <b class="flag-inline">${x.change === 'new' ? 'New' : 'Changed'}</b>` : ''}</span></span>
+  </button>`;
+}
+
+/**
+ * The wall's To-dos view: open to-dos in columns, either by due date
+ * (Overdue & today | This week | Later | No due date) or by person (like the
+ * People view; shared to-dos repeat in each column). Tick to complete, tap to
+ * open the pop-up, and "Add to-do" opens the Add sheet set to a to-do.
+ */
+export function todosViewHtml(items, filter, ctx, people, mode) {
+  const today = todayYmd(), weekEnd = addDays(today, 6);
+  const open = items.filter((x) => x.section === 'todo' && !x.done && visible(x, filter))
+    .sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999') || a.title.localeCompare(b.title));
+  const seg = (m, label) => `<button class="opt" data-todo-mode="${m}" aria-pressed="${mode === m}">${label}</button>`;
+  const head = `<div class="tv-head">
+      <div class="tv-seg">${seg('due', 'By due date')}${seg('person', 'By person')}</div>
+      <span class="tv-n">${open.length ? open.length + ' open' : ''}</span>
+      <button class="tv-add" data-add-todo>＋ Add to-do</button>
+    </div>`;
+  if (!open.length) return `<div class="tv">${head}<p class="tv-none">All done 🎉</p></div>`;
+
+  let cols;
+  if (mode === 'person') {
+    let ps = people.filter((p) => p.code !== 'P');
+    if (filter !== 'all') ps = ps.filter((p) => p.code === filter);
+    cols = ps.map((p) => {
+      const mine = open.filter((x) => forPerson(x, p.code));
+      return `<section class="pcol p-${p.code}">
+        <header class="pc-h"><span class="badge p-${p.code}">${esc(p.badge || p.code)}</span><span class="pc-name">${esc(p.name)}</span><span class="pc-n">${mine.length || ''}</span></header>
+        <div class="pc-body tv-body">${mine.map((x) => todoCard(x, ctx, today, p.code === 'F' ? bandCode(x.people) : p.code)).join('') || '<p class="pc-free">Nothing to do</p>'}</div>
+      </section>`;
+    });
+  } else {
+    cols = TODO_BUCKETS.map(([b, label]) => {
+      const inB = open.filter((x) => todoBucket(x, today, weekEnd) === b);
+      const urgent = b === 'now' && inB.length;
+      return `<section class="pcol tv-due${urgent ? ' urgent' : ''}">
+        <header class="pc-h"><span class="pc-name">${label}</span><span class="pc-n">${inB.length || ''}</span></header>
+        <div class="pc-body tv-body">${inB.map((x) => todoCard(x, ctx, today, bandCode(x.people))).join('') || '<p class="pc-free">Nothing here</p>'}</div>
+      </section>`;
+    });
+  }
+  return `<div class="tv">${head}<div class="pcols" style="--cols:${cols.length}">${cols.join('')}</div></div>`;
 }
 
 export function scheduleHtml(items, filter, ctx) {

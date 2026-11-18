@@ -499,9 +499,9 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 /* ================================================================ M12 views (wall)
    #app.view-week (home) | .view-people | .view-sched. The bottom strip stays the same. */
 .alt { display: none; min-height: 0; }
-#app.view-people .main, #app.view-sched .main { grid-template-columns: minmax(0, 1fr); }
-#app.view-people .now-wrap, #app.view-people .week-wrap, #app.view-sched .now-wrap, #app.view-sched .week-wrap { display: none; }
-#app.view-people .alt, #app.view-sched .alt { display: flex; }
+#app.view-people .main, #app.view-todos .main, #app.view-sched .main { grid-template-columns: minmax(0, 1fr); }
+#app.view-people .now-wrap, #app.view-people .week-wrap, #app.view-todos .now-wrap, #app.view-todos .week-wrap, #app.view-sched .now-wrap, #app.view-sched .week-wrap { display: none; }
+#app.view-people .alt, #app.view-todos .alt, #app.view-sched .alt { display: flex; }
 
 
 /* people columns */
@@ -525,6 +525,34 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 .pc-item.past { opacity: .5; }
 .pc-todo { background: transparent; border: 1px dashed var(--bd-p); border-left: .28rem solid var(--bd-p); color: var(--text); }
 .pc-free { color: var(--muted); font-size: .9rem; padding: .3rem .2rem; }
+
+/* to-dos view: a header row (layout switch, count, Add) over columns */
+.tv { flex: 1; display: flex; flex-direction: column; gap: .6rem; min-height: 0; min-width: 0; }
+.tv-head { display: flex; align-items: center; gap: .8rem; }
+.tv-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 1.6rem; overflow: hidden; }
+.tv-seg .opt { height: 2.8rem; padding: 0 1rem; font-size: 1rem; font-weight: 600; border-radius: 0; border: 0; }
+.tv-seg .opt + .opt { border-left: 1px solid var(--line); }
+.tv-seg .opt[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+.tv-n { flex: 1; color: var(--muted); font-weight: 600; }
+.tv-add { height: 2.8rem; padding: 0 1.1rem; border-radius: 1.6rem; border: 1px solid var(--line); font-size: 1rem; font-weight: 700; white-space: nowrap; }
+.tv-none { font-size: 1.4rem; color: var(--muted); margin: 2rem auto; }
+.tv-due { border-top-color: var(--line); }
+.tv-due.urgent { border-top-color: var(--alert-bd); }
+.tv-due.urgent .pc-name { color: var(--alert-tx); }
+.tv-body { display: flex; flex-direction: column; gap: .4rem; padding-top: .1rem; }
+.tv-item {
+  flex: none; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .55rem; align-items: start; text-align: left;
+  background: var(--bg-p); color: var(--tx-p); border-left: .3rem solid var(--bd-p); border-radius: .35rem .6rem .6rem .35rem; padding: .5rem .55rem .5rem .45rem;
+}
+.tv-item .box { width: 1.6rem; height: 1.6rem; border: .15rem solid currentColor; border-radius: .35rem; opacity: .7; display: grid; place-items: center; font-weight: 800; position: relative; }
+.tv-item .box::before { content: ''; position: absolute; inset: -.6rem; } /* bigger touch target */
+.tv-main { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+.tv-item .ti { font-size: 1rem; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+.tv-sub { font-size: .8rem; opacity: .9; }
+.tv-sub .overdue { color: var(--alert-tx); font-weight: 800; }
+.tv-item.pending { opacity: .6; }
+.tv-item.pending .ti { text-decoration: line-through; }
+.tv-item.pending .box { background: var(--bd-p); color: #fff; border-color: var(--bd-p); opacity: 1; }
 
 /* rolling schedule */
 .sched {

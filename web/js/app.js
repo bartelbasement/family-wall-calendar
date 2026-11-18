@@ -9,7 +9,7 @@ import { bannerHtml, nowHtml, weekHtml, todosHtml, chipsHtml, itemSheetHtml, day
 import { headHtml, agendaHtml, phoneTodosHtml, tabsHtml } from './phone.js?v=__V__';
 import { createWeather } from './weather.js?v=__V__';
 import { GROCERY_FORM, groceryListHtml, grocerySheetHtml } from './grocery.js?v=__V__';
-import { railHtml, viewsHtml, menuSheetHtml, peopleHtml, scheduleHtml } from './views.js?v=__V__';
+import { railHtml, viewsHtml, menuSheetHtml, peopleHtml, scheduleHtml, todosViewHtml } from './views.js?v=__V__';
 import { keepScroll } from './dom.js?v=__V__';
 
 // Night hours and idle time come from settings (snapshot.options), with these defaults.
@@ -45,7 +45,8 @@ const ui = {
   status: null,         // refresh status { text, stale, warn } for the phone stamp / wall side panel
   rail: false,          // wall side panel expanded
   tab: 'cal',           // phone layout: 'cal' | 'todo' | 'grocery'
-  view: 'week'          // wall layout: 'week' (home) | 'people' | 'sched'
+  view: 'week',         // wall layout: 'week' (home) | 'people' | 'todos' | 'sched'
+  todoMode: 'due'       // wall To-dos view: 'due' (columns by due date) | 'person'
 };
 // Menu style on this screen: 'rail' (side panel, default) or 'classic' (☰ in the
 // top-right corner, view switch and 🛒 in the bottom bar). Device-only, switched
@@ -61,10 +62,11 @@ function setMenuStyle(style) {
   ui.rail = false; ui.sheet = null;
   render();
 }
-const VIEWS = ['week', 'people', 'sched'];
-const WALL_VIEWS = ['week', 'people']; // views offered on the wall (sched is built but hidden)
+const VIEWS = ['week', 'people', 'todos', 'sched'];
+const WALL_VIEWS = ['week', 'people', 'todos']; // views offered on the wall (sched is built but hidden)
 try { if (!mode.kiosk) ui.filter = localStorage.getItem('wall-filter') || 'all'; } catch (e) { /* ignore */ }
 try { if (!mode.kiosk) { const v = localStorage.getItem('wall-view'); if (WALL_VIEWS.includes(v)) ui.view = v; } } catch (e) { /* ignore */ }
+try { if (localStorage.getItem('wall-todo-mode') === 'person') ui.todoMode = 'person'; } catch (e) { /* ignore */ }
 
 /** Phone layout: forced by ?mode=phone, or automatic on narrow screens (re-checked on rotate). */
 // Uses the same media query as the stylesheet, so layout and CSS can never disagree.
@@ -266,6 +268,7 @@ function renderWall(items, ctx, snap) {
   // #alt and #now hold their own scrolling lists (people columns, Today), and
   // #now changes every minute with the clock: keep those lists in place.
   if (ui.view === 'people') setKeep($('#alt'), peopleHtml(items, ui.filter, ctx, snap.people || []));
+  else if (ui.view === 'todos') setKeep($('#alt'), todosViewHtml(items, ui.filter, ctx, snap.people || [], ui.todoMode));
   else if (ui.view === 'sched') setKeep($('#alt'), scheduleHtml(items, ui.filter, ctx));
   setKeep($('#now'), nowHtml(items, ui.filter, ctx));
   fitNow();
@@ -288,7 +291,8 @@ function renderWall(items, ctx, snap) {
 function renderRail() {
   if (isPhone() || classic()) return;
   const g = groceryItems();
-  setHtml($('#rail'), railHtml(ui.view, ui.rail, ui.status || { text: '' }, g ? g.filter((x) => !x.done).length : null));
+  const todos = ((store.state.snap && store.state.snap.items) || []).filter((x) => x.section === 'todo' && !x.done && !ui.hidden.has(x.id)).length;
+  setHtml($('#rail'), railHtml(ui.view, ui.rail, ui.status || { text: '' }, g ? g.filter((x) => !x.done).length : null, todos));
   $('#rail').classList.toggle('open', ui.rail);
   $('#app').classList.toggle('rail-open', ui.rail);
 }
@@ -414,6 +418,13 @@ document.addEventListener('click', (e) => {
   const t = e.target;
   if (t.closest('[data-close]') || t.id === 'scrim') { ui.sheet = null; ui.add = null; render(); return; }
   if (t.closest('[data-add-open]')) { openAdd(); return; }
+  if (t.closest('[data-add-todo]')) { openAdd('todo'); return; }
+  const tm = t.closest('[data-todo-mode]');
+  if (tm) {
+    ui.todoMode = tm.dataset.todoMode === 'person' ? 'person' : 'due';
+    try { localStorage.setItem('wall-todo-mode', ui.todoMode); } catch (err) { /* ignore */ }
+    render(); return;
+  }
   if (t.closest('[data-menu-open]')) { ui.sheet = { type: 'menu' }; ui.add = null; render(); return; }
   const ms = t.closest('[data-menu-style]');
   if (ms) { setMenuStyle(ms.dataset.menuStyle); return; }
@@ -459,9 +470,9 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ---------------------------------------------------------------- quick add
-function openAdd() {
+function openAdd(type = 'event') {
   const filterPerson = ui.filter !== 'all' ? [ui.filter] : [];
-  ui.add = { type: 'event', people: filterPerson, date: todayYmdLocal(), time: null, title: '',
+  ui.add = { type, people: filterPerson, date: todayYmdLocal(), time: null, title: '',
     saving: false, error: null, requestId: crypto.randomUUID() };
   ui.sheet = { type: 'add' };
   drawAdd();
