@@ -165,8 +165,37 @@ export function chipsHtml(people, filter) {
 }
 
 // ---------------------------------------------------------------- sheets
-export function itemSheetHtml(x, ctx, kiosk) {
-  const names = x.people.map((p) => `<span>${badges([p], ctx)} ${esc(ctx.names[p] || p)}</span>`).join('');
+/** Whether "Who" can be changed: Trello cards, and events on calendars the family can edit. */
+export function canRetag(x) {
+  if (x.display === 'icon' || x.folded) return false;
+  return !!(x.trelloId || (x.calendarId && !/@import\.calendar\.google\.com$/.test(x.calendarId)));
+}
+
+/** People offered in the Who picker. Trello-only items can store "Parent" but not Mom/Dad. */
+export function retagChoices(x, people) {
+  const trelloOnly = !!x.trelloId && !x.calendarId;
+  return people.filter((p) => trelloOnly ? p.code !== 'M' && p.code !== 'D' : p.code !== 'P');
+}
+
+function whoHtml(x, ctx, edit, people) {
+  if (!edit) {
+    const names = x.people.map((p) => `<span>${badges([p], ctx)} ${esc(ctx.names[p] || p)}</span>`).join('');
+    return `<div class="who">${names}${canRetag(x) ? '<button class="who-edit" data-who-edit>✎ Change who</button>' : ''}</div>`;
+  }
+  const sel = (on) => `aria-pressed="${on ? 'true' : 'false'}"`;
+  return `<div class="who-picker">
+    <div class="add-h">Who is this for?</div>
+    <div class="opts">${retagChoices(x, people).map((p) => `<button class="opt who-opt" data-who-pick="${p.code}" ${sel(edit.pick.includes(p.code))}>
+      <span class="badge p-${p.code}">${esc(p.badge || p.code)}</span>${esc(p.name)}</button>`).join('')}</div>
+    ${edit.error ? `<div class="alert-line" style="margin-top:.7rem">${esc(edit.error)}</div>` : ''}
+    <div class="who-actions">
+      <button class="opt" data-who-cancel ${edit.saving ? 'disabled' : ''}>Cancel</button>
+      <button class="done-btn" data-who-save ${edit.saving || !edit.pick.length ? 'disabled' : ''}>${edit.saving ? 'Saving…' : 'Save'}</button>
+    </div>
+  </div>`;
+}
+
+export function itemSheetHtml(x, ctx, kiosk, edit, people) {
   const when = x.section === 'todo'
     ? (x.date ? 'Due ' + dayLabel(x.date) : 'No due date')
     : `${dayLabel(x.date)}${x.endDate && x.endDate !== x.date ? ' – ' + dayLabel(x.endDate) : ''} · ${timeRange(x)}`;
@@ -188,7 +217,7 @@ export function itemSheetHtml(x, ctx, kiosk) {
     <button class="close" data-close aria-label="Close">✕</button>
     ${x.alert ? `<div class="alert-line">⚠️ ${esc(x.alert)}</div>` : ''}
     <h3>${esc(x.title)}</h3>
-    <div class="who">${names}</div>
+    ${whoHtml(x, ctx, edit, people || [])}
     <dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
     ${x.section === 'todo' && x.trelloId ? `<button class="done-btn" data-complete="${esc(x.id)}">✓ Mark done</button>` : ''}
     ${links ? `<div class="links">${links}</div>` : ''}

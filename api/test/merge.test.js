@@ -113,3 +113,10 @@ test('mergeItems: Family is dropped when a real person is present', () => {
   assert.deepEqual(r.items[0].people, ['R', 'C']);
   assert.equal(r.items[0].offDay, true, 'off-day flag carried from Trello');
 });
+
+test('merged people: a named parent from the calendar replaces Trello "Parent"', () => {
+  const r = mergeItems([tr('pp', 'Parent teacher interview', '2026-11-25T16:00:00-07:00', { people: ['R', 'P'] })],
+    [cal('pp', 'Parent teacher interview', '2026-11-25T16:00:00-07:00', { people: ['M'] })], opts);
+  assert.equal(r.items.length, 1);
+  assert.deepEqual(r.items[0].people.sort(), ['M', 'R']);
+});

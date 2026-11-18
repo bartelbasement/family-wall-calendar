@@ -50,6 +50,7 @@ var POST_ACTIONS = {
   completeTodo: function (b) { return completeTodo_(b); },
   addEvent: function (b) { return addEvent_(b); },
   addTodo: function (b) { return addTodo_(b); },
+  setPeople: function (b) { return setPeople_(b); },
   getSettings: function (b) { return getSettingsForEditor_(b); },
   saveSettings: function (b) { return saveSettings_(b); }
 };

@@ -5,7 +5,7 @@ import { createStore } from './store.js?v=__V__';
 import { getMode } from './mode.js?v=__V__';
 import { startKiosk } from './kiosk.js?v=__V__';
 import { calibrate, clockLabel, setNow, now, parts } from './time.js?v=__V__';
-import { bannerHtml, nowHtml, weekHtml, todosHtml, chipsHtml, itemSheetHtml, daySheetHtml, nightHtml, toastHtml, addSheetHtml } from './render.js?v=__V__';
+import { bannerHtml, nowHtml, weekHtml, todosHtml, chipsHtml, itemSheetHtml, daySheetHtml, nightHtml, toastHtml, addSheetHtml, retagChoices } from './render.js?v=__V__';
 import { headHtml, agendaHtml, phoneTodosHtml, tabsHtml } from './phone.js?v=__V__';
 import { createWeather } from './weather.js?v=__V__';
 
@@ -169,7 +169,7 @@ function renderSheet(items, ctx) {
   } else if (ui.sheet.type === 'item') {
     const x = items.find((i) => i.id === ui.sheet.id);
     if (!x) { ui.sheet = null; scrim.hidden = true; return; }
-    html = itemSheetHtml(x, ctx, mode.kiosk);
+    html = itemSheetHtml(x, ctx, mode.kiosk, ui.sheet.who || null, (store.state.snap && store.state.snap.people) || []);
   } else {
     html = daySheetHtml(items, ui.sheet.day, ui.filter, ctx);
   }
@@ -235,6 +235,7 @@ document.addEventListener('click', (e) => {
     return;
   }
   if (ui.sheet && ui.sheet.type === 'add' && handleAddClick(t)) return;
+  if (ui.sheet && ui.sheet.type === 'item' && handleWhoClick(t)) return;
   const u = t.closest('[data-undo]');
   if (u) { undoComplete(u.dataset.undo); return; }
   const c = t.closest('[data-complete]');
@@ -346,8 +347,51 @@ async function submitAdd() {
   }
 }
 
+// ---------------------------------------------------------------- change who
+function handleWhoClick(t) {
+  const sh = ui.sheet;
+  const x = itemById(sh.id);
+  if (!x) return false;
+  if (t.closest('[data-who-edit]')) {
+    const allowed = new Set(retagChoices(x, store.state.snap.people || []).map((p) => p.code));
+    sh.who = { pick: x.people.filter((p) => allowed.has(p)), saving: false, error: null, requestId: crypto.randomUUID() };
+    render(); return true;
+  }
+  if (!sh.who) return false;
+  if (sh.who.saving) return !!t.closest('.sheet');
+  const p = t.closest('[data-who-pick]');
+  if (p) {
+    const code = p.dataset.whoPick, pick = sh.who.pick;
+    sh.who.pick = pick.includes(code) ? pick.filter((c) => c !== code) : pick.concat(code);
+    sh.who.requestId = crypto.randomUUID(); // a different choice is a different request
+    render(); return true;
+  }
+  if (t.closest('[data-who-cancel]')) { sh.who = null; render(); return true; }
+  if (t.closest('[data-who-save]')) { saveWho(x, sh); return true; }
+  return false;
+}
+
+async function saveWho(x, sh) {
+  const w = sh.who;
+  if (!w.pick.length) return;
+  w.saving = true; w.error = null; render();
+  try {
+    if (demo) await new Promise((r) => setTimeout(r, 400));
+    else await apiPost('setPeople', { itemId: x.id, people: w.pick, requestId: w.requestId });
+    x.people = w.pick.slice(); // the server patched its snapshot; mirror it locally
+    if (ui.sheet === sh) sh.who = null;
+    ui.toast = { kind: 'ok', text: 'Updated who: ' + x.title };
+    setTimeout(() => { if (ui.toast && ui.toast.kind === 'ok') { ui.toast = null; render(); } }, 3000);
+  } catch (err) {
+    w.saving = false;
+    w.error = /read-only|can’t be changed/.test(err.message) ? err.message : 'Couldn’t save (' + (err.message || 'error') + '). Try again.';
+  }
+  render();
+}
+
 // ---------------------------------------------------------------- to-do completion
-function todoById(id) { return ((store.state.snap && store.state.snap.items) || []).find((x) => x.id === id); }
+function itemById(id) { return ((store.state.snap && store.state.snap.items) || []).find((x) => x.id === id); }
+const todoById = itemById;
 
 function startComplete(id) {
   const x = todoById(id);

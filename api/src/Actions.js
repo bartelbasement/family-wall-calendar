@@ -219,3 +219,69 @@ function addTodo_(body) {
     return { ok: true, item: item };
   });
 }
+
+// ---------------------------------------------------------------- change who
+/**
+ * Re-tags an item's people. Calendar events: the hidden wallPerson property
+ * (wins over title keywords; the title is untouched). Trello cards: person
+ * labels are swapped, other labels kept; Mom/Dad map to the Parent label.
+ * Body: { itemId, people[], requestId }
+ */
+function setPeople_(body) {
+  var people = (body.people || []).filter(function (p, i, arr) {
+    return VALID_PEOPLE_.indexOf(p) !== -1 && arr.indexOf(p) === i;
+  });
+  if (!people.length) throw new Error('pick at least one person');
+  var itemId = String(body.itemId || '');
+  if (!itemId || itemId.length > 400) throw new Error('bad itemId');
+  return once_(body.requestId, function () {
+    var cfg = getConfig_();
+    var snap = readSnapshot_();
+    var item = snap && (snap.items || []).filter(function (x) { return x.id === itemId; })[0];
+    if (!item) throw new Error('item not found (it may have changed); refresh and try again');
+    var changed = [];
+
+    var calPart = itemId.split('|').filter(function (s) { return s.indexOf('g:') === 0; })[0];
+    if (calPart && item.calendarId && !item.folded) {
+      var included = cfg.calendars.some(function (c) { return c.id === item.calendarId; });
+      if (!included) throw new Error('calendar is not on the wall');
+      var resource = { extendedProperties: { 'private': {} } };
+      resource.extendedProperties['private'][PERSON_PROP_] = people.join(',');
+      try {
+        Calendar.Events.patch(resource, item.calendarId, calPart.slice(2));
+      } catch (err) {
+        throw new Error('This calendar is read-only, so it can’t be changed from the wall');
+      }
+      CacheService.getScriptCache().remove(CAL_CACHE_KEY_);
+      changed.push('calendar');
+    }
+
+    if (item.trelloId) {
+      var card = trelloGet_('/cards/' + item.trelloId, { fields: 'idBoard,idLabels' });
+      var board = trelloGet_('/boards/' + cfg.trello.boardId, { fields: 'id' });
+      if (card.idBoard !== board.id) throw new Error('card is not on the school board');
+      var labelIds = boardLabelIds_(cfg);
+      var personLabel = {}, want = {};
+      cfg.people.forEach(function (p) {
+        (p.trelloLabels || []).forEach(function (n) {
+          var id = labelIds[String(n).toLowerCase()];
+          if (id) personLabel[id] = p.code;
+        });
+      });
+      people.forEach(function (code) {
+        var target = (code === 'M' || code === 'D') ? 'P' : code;
+        Object.keys(personLabel).forEach(function (id) { if (personLabel[id] === target) want[id] = true; });
+      });
+      var keep = (card.idLabels || []).filter(function (id) { return !personLabel[id]; });
+      trelloWrite_('put', '/cards/' + item.trelloId, { idLabels: keep.concat(Object.keys(want)).join(',') });
+      CacheService.getScriptCache().remove(TRELLO_CACHE_KEY_);
+      changed.push('trello');
+    }
+
+    if (!changed.length) throw new Error('This item can’t be changed from the wall');
+    patchSnapshot_(function (items) {
+      return items.map(function (x) { return x.id === itemId ? Object.assign({}, x, { people: people }) : x; });
+    });
+    return { ok: true, itemId: itemId, people: people, changed: changed };
+  });
+}

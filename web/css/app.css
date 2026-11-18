@@ -446,3 +446,11 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 .ag-wx:empty { display: none; }
 .ag-wx:empty + .ag-icons { margin-left: auto; }
 .wx-head { margin-left: .5rem; font-weight: 500; color: var(--muted); }
+
+/* ---------- change who ---------- */
+.who-edit { margin-left: auto; border: 1px solid var(--line); border-radius: 1.2rem; padding: .35rem .8rem; font-size: .9rem; font-weight: 600; min-height: 2.4rem; }
+.who-picker { margin: .3rem 0 1rem; }
+.who-picker .add-h { margin-top: .2rem; }
+.who-actions { display: grid; grid-template-columns: auto 1fr; gap: .6rem; margin-top: .9rem; align-items: stretch; }
+.who-actions .done-btn { margin-top: 0; }
+.who-actions .opt { padding: 0 1.2rem; }

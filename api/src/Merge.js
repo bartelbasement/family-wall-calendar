@@ -86,6 +86,8 @@ function compareItems(t, c, opts) {
 function mergePair_(t, c) {
   var people = c.people.concat(t.people).filter(function (p, i, arr) { return arr.indexOf(p) === i; });
   if (people.length > 1) people = people.filter(function (p) { return p !== 'F'; });
+  // Trello can only say "Parent"; a named parent from the calendar is more precise.
+  if (people.indexOf('M') !== -1 || people.indexOf('D') !== -1) people = people.filter(function (p) { return p !== 'P'; });
   var m = Object.assign({}, c);
   m.id = c.id + '|' + t.id;
   m.source = 'both';
