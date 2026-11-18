@@ -204,9 +204,10 @@ async function commitComplete(id) {
 // Wall: drift back to the home state when nobody is using it.
 if (mode.kiosk) {
   setInterval(() => {
-    if (Date.now() - ui.lastTouch > IDLE_MS && (ui.sheet || ui.filter !== 'all' || $('#week').scrollLeft > 0)) {
+    if (Date.now() - ui.lastTouch > IDLE_MS && (ui.sheet || ui.filter !== 'all' || $('#week').scrollLeft > 0 || $('#todos').scrollLeft > 0)) {
       ui.sheet = null; ui.filter = 'all'; render();
       $('#week').scrollTo({ left: 0, behavior: 'smooth' });
+      $('#todos').scrollTo({ left: 0, behavior: 'smooth' });
     }
   }, 10e3);
 }
