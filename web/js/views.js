@@ -20,6 +20,19 @@ export function viewsHtml(view) {
   return b('week', '▦', 'Week') + b('people', '👥', 'People');
 }
 
+/** The wall's ☰ side panel: refresh status, Refresh, Settings (PIN). Room for more later. */
+export function menuSheetHtml(st) {
+  return `<div class="sheet menu-sheet" role="dialog" aria-modal="true" aria-label="Menu">
+    <button class="close" data-close aria-label="Close">✕</button>
+    <h3>Menu</h3>
+    ${st.warn ? `<p class="menu-warn">${esc(st.warn)}</p>` : ''}
+    <div class="menu-list">
+      <button class="menu-item" data-refresh><span class="ic">↻</span><span class="mi">Refresh now<small class="${st.stale ? 'stale' : ''}">Updated ${esc(st.text)}</small></span></button>
+      <button class="menu-item" data-settings-open><span class="ic">⚙</span><span class="mi">Settings<small>Parent PIN</small></span></button>
+    </div>
+  </div>`;
+}
+
 // ---------------------------------------------------------------- people columns
 /** Does this item belong in person `code`'s column? Mom/Dad columns also show Parent items. */
 function forPerson(x, code) {

@@ -9,7 +9,7 @@ import { bannerHtml, nowHtml, weekHtml, todosHtml, chipsHtml, itemSheetHtml, day
 import { headHtml, agendaHtml, phoneTodosHtml, tabsHtml } from './phone.js?v=__V__';
 import { createWeather } from './weather.js?v=__V__';
 import { GROCERY_FORM, groceryListHtml, grocerySheetHtml } from './grocery.js?v=__V__';
-import { viewsHtml, peopleHtml, scheduleHtml } from './views.js?v=__V__';
+import { viewsHtml, peopleHtml, scheduleHtml, menuSheetHtml } from './views.js?v=__V__';
 
 // Night hours and idle time come from settings (snapshot.options), with these defaults.
 const DEFAULT_OPTIONS = { nightStart: '21:30', nightEnd: '06:30', idleMinutes: 2 };
@@ -40,6 +40,7 @@ const ui = {
   hidden: new Set(),    // to-do ids completed in Trello; hidden until the snapshot drops them
   toast: null,
   add: null,            // quick-add form state while the Add sheet is open
+  status: null,         // refresh status { text, stale, warn } for the stamp / ☰ menu
   tab: 'cal',           // phone layout: 'cal' | 'todo' | 'grocery'
   view: 'week'          // wall layout: 'week' (home) | 'people' | 'sched'
 };
@@ -97,14 +98,13 @@ function render() {
   const { snap, error } = store.state;
   const phone = isPhone();
   document.body.classList.toggle('is-phone', phone);
-  const stamp = phone ? $('#ph-stamp') : $('#stamp');
   if (!snap) {
     const msg = `<p class="now-empty">${errorText(error)}</p>${
-      error ? `<p class="err-code">Details: ${escHtml(error)} · tap ↻ to retry</p>` : ''}`;
+      error ? `<p class="err-code">Details: ${escHtml(error)} · <button class="stamp" data-refresh>↻ Retry</button></p>` : ''}`;
     if (phone) { $('#ph-main').innerHTML = msg; $('#ph-main')._html = null; }
-    else $('#now').innerHTML = `<div class="clock">${clockLabel(now())}</div>${msg}`;
-    stamp.textContent = error ? (error === 'forbidden' || error === 'missing_key' ? '↻ Key problem' : '↻ Offline') : '';
-    stamp.className = 'stamp' + (error ? ' stale' : '');
+    else { $('#now').innerHTML = `<div class="clock">${clockLabel(now())}</div>${msg}`; $('#now')._html = null; }
+    ui.status = { text: error ? (error === 'forbidden' || error === 'missing_key' ? 'Key problem' : 'Offline') : 'Loading…', stale: !!error };
+    showStatus(phone);
     return;
   }
   calibrate(snap.tzOffset);
@@ -125,12 +125,28 @@ function render() {
   else renderWall(items, ctx, snap);
 
   const stale = store.isStale() || !!error;
-  stamp.textContent = store.state.refreshing ? '↻ Refreshing…'
-    : (demo ? 'DEMO · ' : '') + '↻ ' + clockLabel(snap.updatedAt) + (error ? ' · offline' : '');
-  stamp.className = 'stamp' + (stale ? ' stale' : '');
+  ui.status = {
+    text: store.state.refreshing ? 'Refreshing…' : (demo ? 'DEMO · ' : '') + clockLabel(snap.updatedAt) + (error ? ' · offline' : ''),
+    stale,
+    warn: error ? 'Offline: showing what was loaded at ' + clockLabel(snap.updatedAt) + '.'
+      : stale ? 'The calendar hasn’t updated since ' + clockLabel(snap.updatedAt) + '.' : ''
+  };
+  showStatus(phone);
 
   renderSheet(items, ctx);
   $('#toast').innerHTML = toastHtml(ui.toast);
+}
+
+/** Refresh status: the phone header shows the stamp; the wall puts it in the
+ *  ☰ menu and marks the ☰ button amber when the data is old or offline. */
+function showStatus(phone) {
+  const st = ui.status;
+  if (phone) {
+    const stamp = $('#ph-stamp');
+    stamp.textContent = '↻ ' + st.text;
+    stamp.className = 'stamp' + (st.stale ? ' stale' : '');
+  }
+  document.querySelectorAll('.menu-btn').forEach((b) => b.classList.toggle('stale', st.stale));
 }
 
 function renderPhone(items, ctx, snap) {
@@ -230,10 +246,6 @@ function renderWall(items, ctx, snap) {
   const app = $('#app');
   VIEWS.forEach((v) => app.classList.toggle('view-' + v, ui.view === v));
   setHtml($('#views'), viewsHtml(ui.view));
-  // Refresh stamp + settings sit beside the clock; the clock panel is hidden in
-  // the other views, so they move back into the bottom bar there.
-  const tools = $('#tools'), host = ui.view === 'week' ? $('#now-wrap') : $('.side-r');
-  if (tools.parentNode !== host) host.appendChild(tools);
   if (ui.view === 'people') setHtml($('#alt'), peopleHtml(items, ui.filter, ctx, snap.people || []));
   else if (ui.view === 'sched') setHtml($('#alt'), scheduleHtml(items, ui.filter, ctx));
   setHtml($('#now'), nowHtml(items, ui.filter, ctx));
@@ -266,6 +278,17 @@ function renderSheet(items, ctx) {
   if (settings.active()) return; // the settings module owns the sheet while open
   if (!ui.sheet) { scrim.hidden = true; scrim.innerHTML = ''; return; }
   let html = '';
+  scrim.classList.toggle('side-scrim', ui.sheet.type === 'menu');
+  if (ui.sheet.type === 'menu') {
+    const html = menuSheetHtml(ui.status || { text: '' });
+    const open = scrim.querySelector('.menu-sheet');
+    // Patch in place when already open so the slide-in doesn't replay on every redraw.
+    if (!open) scrim.innerHTML = html;
+    else if (scrim._menu !== html) { open.classList.add('no-anim'); open.innerHTML = html.replace(/^[\s\S]*?<div class="sheet menu-sheet"[^>]*>/, '').replace(/<\/div>\s*$/, ''); }
+    scrim._menu = html;
+    scrim.hidden = false;
+    return;
+  }
   if (ui.sheet.type === 'grocery') {
     const items = groceryItems();
     if (!items) { ui.sheet = null; scrim.hidden = true; return; }
@@ -339,6 +362,7 @@ document.addEventListener('click', (e) => {
   const t = e.target;
   if (t.closest('[data-close]') || t.id === 'scrim') { ui.sheet = null; ui.add = null; render(); return; }
   if (t.closest('[data-add-open]')) { openAdd(); return; }
+  if (t.closest('[data-menu-open]')) { ui.sheet = { type: 'menu' }; ui.add = null; render(); return; }
   const vb = t.closest('[data-view]');
   if (vb) {
     ui.view = vb.dataset.view;
