@@ -3,6 +3,7 @@
 // snapshot carries { date, list } with today's ticks. Pure HTML builders.
 import { now, todayYmd, minuteOfDay } from './time.js?v=__V__';
 import { esc, visible } from './render.js?v=__V__';
+import { tripCardHtml, packRowHtml, visibleTrips } from './packing.js?v=__V__';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -47,12 +48,18 @@ export function routinesOnNow(routines) {
 
 const ORDER = { now: 0, later: 1, earlier: 2 };
 
-export function routinesViewHtml(routines, filter, people) {
+/**
+ * packing: snapshot.packing ({ lists, trips }) or null; pkUi: see tripCardHtml.
+ * Order in the grid: routines on now, then packing (by leave date), then the rest.
+ */
+export function routinesViewHtml(routines, filter, people, packing = null, pkUi = { open: new Set(), confirm: null, busy: new Set() }) {
   const all = todays(routines).filter((r) => visible({ people: [r.person || 'F'] }, filter));
   const byCode = {};
   (people || []).forEach((p) => { byCode[p.code] = p; });
 
-  if (!routines || !routines.list || !routines.list.length) {
+  const trips = visibleTrips(packing, filter);
+  const hasPacking = !!(packing && ((packing.lists || []).length || (packing.trips || []).length));
+  if ((!routines || !routines.list || !routines.list.length) && !hasPacking) {
     return `<div class="rv"><div class="rv-empty">
       <p class="rv-big">No routines yet</p>
       <p>Make morning, after-school or bedtime checklists the kids can tick off here. They reset every day.</p>
@@ -66,7 +73,7 @@ export function routinesViewHtml(routines, filter, people) {
     .sort((a, b) => ORDER[a.st] - ORDER[b.st] || (a.r.from || '99:99').localeCompare(b.r.from || '99:99'));
   const off = all.filter((r) => routineState(r) === 'off');
 
-  const cards = shown.map(({ r, st }) => {
+  const card = ({ r, st }) => {
     const total = r.steps.length, done = r.steps.filter((s) => s.done).length;
     const complete = done === total;
     const who = r.person && byCode[r.person];
@@ -85,10 +92,14 @@ export function routinesViewHtml(routines, filter, people) {
       <div class="rt-steps">${r.steps.map((s) => `<button class="rt-step${s.done ? ' done' : ''}" data-routine="${esc(r.id)}" data-step="${esc(s.id)}" aria-pressed="${s.done}">
         <span class="rt-box">${s.done ? '✓' : ''}</span><span class="rt-tx">${esc(s.text)}</span></button>`).join('')}</div>
     </section>`;
-  }).join('');
+  };
+  const cards = shown.filter((x) => x.st === 'now').map(card).join('') +
+    trips.map((t) => tripCardHtml(t, byCode, pkUi)).join('') +
+    shown.filter((x) => x.st !== 'now').map(card).join('');
 
   return `<div class="rv">
     <div class="rv-grid">${cards || `<p class="rv-none">No routines today${filter !== 'all' ? ' for this person' : ''}.</p>`}</div>
+    ${packRowHtml(packing)}
     ${off.length ? `<p class="rv-off">Not today: ${off.map((r) => `${esc(r.name)} (${esc(daysLabel(r.days))})`).join(' · ')}</p>` : ''}
   </div>`;
 }

@@ -732,3 +732,23 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 .set-sub { margin: 1.2rem 0 0; font-size: 1.15rem; padding-top: .9rem; border-top: 1px solid var(--line); }
 .pk-n { float: right; color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
 .pk-n.over { color: var(--alert-bd); font-weight: 700; }
+/* packing lists on the Routines view */
+.pk-row { display: flex; align-items: center; gap: .45rem; overflow-x: auto; scrollbar-width: none; flex: none; padding-bottom: .1rem; }
+.pk-row::-webkit-scrollbar { display: none; }
+.pk-row-h { font-weight: 800; color: var(--muted); flex: none; }
+.pk-start { flex: none; gap: .4rem; min-height: 3rem; font-weight: 700; }
+.pk-start span { font-size: 1.3rem; }
+.pk-toggle { cursor: pointer; }
+.pk-soon { color: var(--tx-p); background: var(--bg-p); border-radius: .4rem; padding: 0 .3rem; }
+.pk-show { align-self: stretch; justify-content: center; min-height: 3rem; font-weight: 700; }
+.pk-cancel { align-self: center; background: none; border: 0; color: var(--muted); font: inherit; font-size: .95rem; padding: .5rem 1rem; text-decoration: underline; }
+.pk-confirm { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; font-weight: 700; }
+.pk-confirm span { flex: 1 1 100%; text-align: center; }
+.pk-confirm .opt { flex: 1; justify-content: center; min-height: 3rem; }
+.pk-confirm .pk-stop { background: var(--alert-bg); color: var(--alert-tx); border-color: var(--alert-bd); }
+.pk-done { min-height: 3.3rem; font-size: 1.2rem; }
+.pk-sheet h3 small { font-size: .9rem; color: var(--muted); font-weight: 600; margin-left: .3rem; }
+.pk-sheet .add-h { margin-top: .9rem; }
+.pk-days .opt { min-width: 5.5rem; justify-content: center; }
+.pk-sheet .who-actions { margin-top: 1.1rem; }
+.pk-sheet .done-btn { background: var(--text); color: var(--bg); }

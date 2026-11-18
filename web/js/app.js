@@ -12,6 +12,7 @@ import { GROCERY_FORM, groceryListHtml, grocerySheetHtml } from './grocery.js?v=
 import { railHtml, viewsHtml, menuSheetHtml, peopleHtml, scheduleHtml, todosViewHtml } from './views.js?v=__V__';
 import { keepScroll } from './dom.js?v=__V__';
 import { routinesViewHtml, routinesOnNow, demoRoutines, demoPacking } from './routines.js?v=__V__';
+import { packSheetHtml, packingDueSoon, packers } from './packing.js?v=__V__';
 
 // Night hours and idle time come from settings (snapshot.options), with these defaults.
 const DEFAULT_OPTIONS = { nightStart: '21:30', nightEnd: '06:30', idleMinutes: 2 };
@@ -46,6 +47,7 @@ const ui = {
   status: null,         // refresh status { text, stale, warn } for the phone stamp / wall side panel
   rail: false,          // wall side panel expanded
   tab: 'cal',           // phone layout: 'cal' | 'todo' | 'routines' | 'grocery'
+  pk: { open: new Set(), confirm: null, busy: new Set() }, // packing cards: expanded, being stopped, being ended
   view: 'week',         // wall layout: 'week' (home) | 'people' | 'todos' | 'routines' | 'sched'
   todoMode: 'due'       // wall To-dos view: 'due' (columns by due date) | 'person'
 };
@@ -182,10 +184,10 @@ function renderPhone(items, ctx, snap) {
     setHtml($('#gr-list'), groceryListHtml(groItems));
   } else {
     setHtml($('#ph-main'), ui.tab === 'todo' ? phoneTodosHtml(items, ui.filter, ctx)
-      : ui.tab === 'routines' ? routinesViewHtml(routinesData(), ui.filter, snap.people || [])
+      : ui.tab === 'routines' ? routinesViewHtml(routinesData(), ui.filter, snap.people || [], packingData(), ui.pk)
       : agendaHtml(items, ui.filter, ctx));
   }
-  setHtml($('#ph-tabs'), tabsHtml(items, ui.filter, ui.tab, groItems ? groItems.filter((x) => !x.done).length : null, routinesOnNow(routinesData())));
+  setHtml($('#ph-tabs'), tabsHtml(items, ui.filter, ui.tab, groItems ? groItems.filter((x) => !x.done).length : null, routinesOnNow(routinesData()) + packingDueSoon(packingData())));
 }
 
 // ---------------------------------------------------------------- groceries
@@ -271,7 +273,7 @@ function renderWall(items, ctx, snap) {
   // #alt and #now hold their own scrolling lists (people columns, Today), and
   // #now changes every minute with the clock: keep those lists in place.
   if (ui.view === 'people') setKeep($('#alt'), peopleHtml(items, ui.filter, ctx, snap.people || []));
-  else if (ui.view === 'routines') setKeep($('#alt'), routinesViewHtml(routinesData(), ui.filter, snap.people || []));
+  else if (ui.view === 'routines') setKeep($('#alt'), routinesViewHtml(routinesData(), ui.filter, snap.people || [], packingData(), ui.pk));
   else if (ui.view === 'todos') setKeep($('#alt'), todosViewHtml(items, ui.filter, ctx, snap.people || [], ui.todoMode));
   else if (ui.view === 'sched') setKeep($('#alt'), scheduleHtml(items, ui.filter, ctx));
   setKeep($('#now'), nowHtml(items, ui.filter, ctx));
@@ -296,7 +298,7 @@ function renderRail() {
   if (isPhone() || classic()) return;
   const g = groceryItems();
   const todos = ((store.state.snap && store.state.snap.items) || []).filter((x) => x.section === 'todo' && !x.done && !ui.hidden.has(x.id)).length;
-  setHtml($('#rail'), railHtml(ui.view, ui.rail, ui.status || { text: '' }, g ? g.filter((x) => !x.done).length : null, todos, routinesOnNow(routinesData())));
+  setHtml($('#rail'), railHtml(ui.view, ui.rail, ui.status || { text: '' }, g ? g.filter((x) => !x.done).length : null, todos, routinesOnNow(routinesData()) + packingDueSoon(packingData())));
   $('#rail').classList.toggle('open', ui.rail);
   $('#app').classList.toggle('rail-open', ui.rail);
 }
@@ -338,7 +340,12 @@ function renderSheet(items, ctx) {
     setHtml($('#gr-list'), groceryListHtml(items));
     return;
   }
-  if (ui.sheet.type === 'add') {
+  if (ui.sheet.type === 'pack') {
+    const P = packingData();
+    const list = P && P.lists.find((l) => l.id === ui.sheet.listId);
+    if (!list) { ui.sheet = null; scrim.hidden = true; return; }
+    html = packSheetHtml(list, ui.sheet, (store.state.snap && store.state.snap.people) || []);
+  } else if (ui.sheet.type === 'add') {
     // Never rebuild the form on background refreshes: it would wipe what is being typed.
     if (scrim.querySelector('.add-sheet')) return;
     html = addSheetHtml(ui.add, (store.state.snap && store.state.snap.people) || []);
@@ -426,6 +433,7 @@ document.addEventListener('click', (e) => {
   if (t.closest('[data-add-todo]')) { openAdd('todo'); return; }
   const rs = t.closest('[data-routine]');
   if (rs) { tickRoutine(rs.dataset.routine, rs.dataset.step); return; }
+  if (handlePackClick(t)) return;
   const tm = t.closest('[data-todo-mode]');
   if (tm) {
     ui.todoMode = tm.dataset.todoMode === 'person' ? 'person' : 'due';
@@ -684,6 +692,132 @@ async function tickRoutine(rid, sid) {
   render();
 }
 
+// ---------------------------------------------------------------- packing
+/** Packing lists and trips from the snapshot (the demo page gets samples). */
+function packingData() {
+  const snap = store.state.snap;
+  if (!snap) return null;
+  if (demo && !snap.packing) snap.packing = demoPacking();
+  return snap.packing || null;
+}
+
+function packError(text) {
+  ui.toast = { kind: 'error', text };
+  setTimeout(() => { if (ui.toast && ui.toast.kind === 'error') { ui.toast = null; render(); } }, 6000);
+}
+
+let packWrites = 0; // writes in flight: only the last reply may replace local state
+/** Sends a packing write; the reply's packing replaces local state when nothing else is in flight. */
+async function packPost(action, body) {
+  packWrites++;
+  try {
+    const res = await apiPost(action, { ...body, requestId: crypto.randomUUID() });
+    if (packWrites === 1 && res.packing && store.state.snap) store.state.snap.packing = res.packing;
+    return res;
+  } finally {
+    packWrites--;
+  }
+}
+
+function handlePackClick(t) {
+  const P = packingData();
+  if (!P) return false;
+  const sh = ui.sheet && ui.sheet.type === 'pack' ? ui.sheet : null;
+  const start = t.closest('[data-pack-start]');
+  if (start) {
+    const list = P.lists.find((l) => l.id === start.dataset.packStart);
+    if (!list) return true;
+    const people = (store.state.snap && store.state.snap.people) || [];
+    // Preselect the list's owner, or the person the wall is filtered to.
+    const pre = [list.person, ui.filter].find((c) => c && packers(people).some((p) => p.code === c));
+    ui.sheet = { type: 'pack', listId: list.id, people: pre ? [pre] : [], leave: '', saving: false, error: null };
+    render(); return true;
+  }
+  const who = sh && t.closest('[data-pack-who]');
+  if (who) {
+    const c = who.dataset.packWho;
+    sh.people = sh.people.includes(c) ? sh.people.filter((x) => x !== c) : sh.people.concat(c);
+    render(); return true;
+  }
+  const lv = sh && t.closest('[data-pack-leave]');
+  if (lv) { sh.leave = lv.dataset.packLeave; render(); return true; }
+  if (sh && t.closest('[data-pack-go]')) { startPacking(sh); return true; }
+  const it = t.closest('[data-pack-item]');
+  if (it) { tickPack(it.dataset.packTrip, it.dataset.packItem); return true; }
+  const tg = t.closest('[data-pack-toggle]');
+  if (tg) {
+    const id = tg.dataset.packToggle;
+    if (ui.pk.open.has(id)) ui.pk.open.delete(id); else ui.pk.open.add(id);
+    render(); return true;
+  }
+  const cancel = t.closest('[data-pack-cancel]');
+  if (cancel) { ui.pk.confirm = cancel.dataset.packCancel; render(); return true; }
+  if (t.closest('[data-pack-keep]')) { ui.pk.confirm = null; render(); return true; }
+  const end = t.closest('[data-pack-end]');
+  if (end) { endPacking(end.dataset.packEnd); return true; }
+  return false;
+}
+
+async function startPacking(sh) {
+  if (sh.saving || !sh.people.length) return;
+  sh.saving = true; sh.error = null; render();
+  const P = packingData();
+  try {
+    if (demo) {
+      await new Promise((r) => setTimeout(r, 400));
+      const list = P.lists.find((l) => l.id === sh.listId);
+      const started = todayYmdLocal();
+      sh.people.forEach((person, i) => P.trips.push({ id: 'demot' + Date.now() + i, listId: list.id, name: list.name, icon: list.icon,
+        person, leave: sh.leave, started, items: list.items.map((x) => ({ id: x.id, text: x.text, done: false })) }));
+      P.trips.sort((a, b) => (a.leave || '9999').localeCompare(b.leave || '9999') || a.started.localeCompare(b.started));
+    } else {
+      await packPost('packStart', { listId: sh.listId, people: sh.people, leave: sh.leave });
+    }
+    if (ui.sheet === sh) ui.sheet = null;
+  } catch (e) {
+    sh.saving = false;
+    sh.error = /too many/.test(e.message) ? 'There are already lots of lists being packed. Finish some first.' : 'Couldn’t start it. Try again in a minute.';
+  }
+  render();
+}
+
+async function tickPack(tripId, itemId) {
+  const P = packingData();
+  const trip = P && P.trips.find((x) => x.id === tripId);
+  const item = trip && trip.items.find((x) => x.id === itemId);
+  if (!item) return;
+  const done = !item.done;
+  item.done = done; // optimistic
+  render();
+  if (demo) return;
+  try {
+    await packPost('packTick', { tripId, itemId, done });
+  } catch (e) {
+    item.done = !done;
+    packError('Couldn’t save that tick. Try again in a minute.');
+  }
+  render();
+}
+
+/** Done and Stop both end the trip. */
+async function endPacking(tripId) {
+  if (ui.pk.busy.has(tripId)) return;
+  ui.pk.busy.add(tripId); render();
+  try {
+    if (demo) await new Promise((r) => setTimeout(r, 300));
+    else await packPost('packEnd', { tripId });
+    const P = packingData();
+    if (P) P.trips = P.trips.filter((x) => x.id !== tripId);
+    ui.pk.open.delete(tripId);
+    if (ui.pk.confirm === tripId) ui.pk.confirm = null;
+  } catch (e) {
+    packError('Couldn’t save that. Try again in a minute.');
+  } finally {
+    ui.pk.busy.delete(tripId);
+  }
+  render();
+}
+
 async function commitComplete(id) {
   const x = todoById(id);
   ui.pending.delete(id);
@@ -706,7 +840,8 @@ if (mode.kiosk) {
   setInterval(() => {
     if (Date.now() - ui.lastTouch > idleMs() && (ui.sheet || ui.rail || settings.active() || ui.filter !== 'all' || ui.view !== 'week' || ($('.now-list') && $('.now-list').scrollTop > 4) || $('#week').scrollLeft > 4 || $('#todos').scrollLeft > 4)) {
       if (settings.active()) settings.close();
-      ui.sheet = null; ui.add = null; ui.rail = false; ui.filter = 'all'; ui.view = 'week'; render();
+      ui.sheet = null; ui.add = null; ui.rail = false; ui.filter = 'all'; ui.view = 'week';
+      ui.pk.open.clear(); ui.pk.confirm = null; render();
       ui.lastTouch = Date.now(); // reset once per idle spell, never in a loop
       $('#week').scrollTo({ left: 0, behavior: 'smooth' });
       if ($('.now-list')) $('.now-list').scrollTo({ top: 0, behavior: 'smooth' });
