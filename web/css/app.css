@@ -434,10 +434,14 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 .ph-tab.ph-add { color: var(--text); }
 
 /* ---------- weather (M10) ---------- */
-.wx-now { display: flex; align-items: center; gap: .6rem; margin-top: .7rem; }
-.wx-now .wx-ic { font-size: 2.4rem; line-height: 1; }
-.wx-now .wx-t { font-size: 2.6rem; font-weight: 300; line-height: 1; }
-.wx-now .wx-d { font-size: .95rem; color: var(--muted); line-height: 1.25; }
+/* Today's weather: beside the clock, bottom-aligned, under the corner buttons */
+.now-top { display: flex; align-items: flex-end; justify-content: space-between; gap: .6rem; }
+.now-top .clock { flex: none; }
+.wx-now { display: flex; align-items: center; gap: .35rem; min-width: 0; margin-bottom: .35rem; }
+.wx-now .wx-ic { flex: none; font-size: 1.8rem; line-height: 1; }
+.wx-now .wx-t { flex: none; font-size: 2rem; font-weight: 400; line-height: 1; }
+.wx-now .wx-d { display: flex; flex-direction: column; min-width: 0; font-size: .85rem; font-weight: 500; line-height: 1.25; color: var(--muted); }
+.wx-now .wx-d > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .day-h .wx-row { grid-column: 1 / -1; min-height: 1.2rem; margin-top: .2rem; }
 .wx { font-size: .85rem; font-weight: 600; white-space: nowrap; }
 .wx .lo { color: var(--muted); font-weight: 500; }
@@ -482,14 +486,15 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
    #app.view-week (home) | .view-people | .view-sched. The bottom strip stays the same. */
 .alt { display: none; min-height: 0; }
 #app.view-people .main, #app.view-sched .main { grid-template-columns: minmax(0, 1fr); }
-#app.view-people #now, #app.view-people .week-wrap, #app.view-sched #now, #app.view-sched .week-wrap { display: none; }
+#app.view-people .now-wrap, #app.view-people .week-wrap, #app.view-sched .now-wrap, #app.view-sched .week-wrap { display: none; }
 #app.view-people .alt, #app.view-sched .alt { display: flex; }
 
 .views { display: inline-flex; border: 1px solid var(--line); border-radius: 1.6rem; overflow: hidden; height: 3.1rem; }
 .view-btn { display: inline-flex; align-items: center; gap: .35rem; padding: 0 .85rem; font-size: .95rem; font-weight: 600; }
 .view-btn + .view-btn { border-left: 1px solid var(--line); }
 .view-btn[aria-pressed="true"] { background: var(--text); color: var(--bg); }
-.view-btn .vl { display: none; } .view-btn { padding: 0 .85rem; font-size: 1.2rem; }  /* icons only: the bottom bar is full */
+.view-btn { padding: 0 1.1rem; font-size: 1.05rem; }
+.view-btn > span:first-child { font-size: 1.2rem; }
 
 /* people columns */
 .pcols { flex: 1; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: .5rem; min-height: 0; }
@@ -552,3 +557,11 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 .side-r { flex: none; }
 #app { grid-template-columns: minmax(0, 1fr); } /* never wider than the screen; the chip strip scrolls instead */
 .bottom { grid-template-columns: minmax(0, 1fr); }
+
+/* Clock panel corner: refresh stamp + settings (moved to the bottom bar in People view) */
+.now-wrap { position: relative; display: flex; flex-direction: column; min-height: 0; }
+.now-wrap > .now { flex: 1; }
+.tools { display: inline-flex; align-items: center; gap: .5rem; }
+.now-wrap > .tools { position: absolute; top: .2rem; right: 0; }
+.now-wrap > .tools .gear-btn { width: 2.6rem; height: 2.6rem; font-size: 1.15rem; }
+.now-wrap > .tools button.stamp { min-height: 2.4rem; }

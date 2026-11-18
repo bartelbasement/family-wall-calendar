@@ -68,8 +68,8 @@ export function nowHtml(items, filter, ctx) {
   const shown = live.slice(0, NOW_ITEMS);
   const nextIdx = shown.findIndex((x) => Date.parse(x.start) > t.getTime());
 
-  let html = `<div class="clock">${clockLabel(t)}<span class="ampm">${p.h < 12 ? 'am' : 'pm'}</span></div>
-    <div class="date">${esc(longDateLabel(today))}</div>${nowWx(ctx.weather, today)}`;
+  let html = `<div class="now-top"><div class="clock">${clockLabel(t)}<span class="ampm">${p.h < 12 ? 'am' : 'pm'}</span></div>${nowWx(ctx.weather, today)}</div>
+    <div class="date">${esc(longDateLabel(today))}</div>`;
   const icons = items.filter((x) => x.display === 'icon' && x.date === today);
   if (allDay.length || icons.length) {
     html += `<div class="allday-today">${icons.map((x) =>

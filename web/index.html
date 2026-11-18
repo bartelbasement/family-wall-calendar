@@ -21,7 +21,9 @@
 <div id="app">
   <div id="banner" class="banner" role="status"></div>
   <div class="main">
-    <section id="now" class="now" aria-label="Today"></section>
+    <div id="now-wrap" class="now-wrap"><section id="now" class="now" aria-label="Today"></section>
+      <span id="tools" class="tools"><button id="stamp" class="stamp" data-refresh title="Tap to refresh now"></button>
+      <button class="gear-btn" data-settings-open aria-label="Settings">⚙</button></span></div>
     <div class="week-wrap" id="week-wrap"><section id="week" class="week" aria-label="Coming days"></section></div>
     <section id="alt" class="alt" aria-live="polite"></section>
   </div>
@@ -31,9 +33,7 @@
       <div id="chips" class="chips" role="group" aria-label="Show"></div>
       <span class="side-r"><span id="views" class="views" role="group" aria-label="View"></span>
       <button class="gro-btn" id="gro-btn" data-grocery-open aria-label="Groceries" hidden>🛒<b id="gro-count"></b></button>
-      <button class="add-btn" data-add-open>＋ Add</button>
-      <button class="gear-btn" data-settings-open aria-label="Settings">⚙</button>
-      <button id="stamp" class="stamp" data-refresh title="Tap to refresh now"></button></span>
+      <button class="add-btn" data-add-open>＋ Add</button></span>
     </div>
   </div>
 </div>

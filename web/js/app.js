@@ -44,8 +44,9 @@ const ui = {
   view: 'week'          // wall layout: 'week' (home) | 'people' | 'sched'
 };
 const VIEWS = ['week', 'people', 'sched'];
+const WALL_VIEWS = ['week', 'people']; // views offered on the wall (sched is built but hidden)
 try { if (!mode.kiosk) ui.filter = localStorage.getItem('wall-filter') || 'all'; } catch (e) { /* ignore */ }
-try { if (!mode.kiosk) { const v = localStorage.getItem('wall-view'); if (VIEWS.includes(v)) ui.view = v; } } catch (e) { /* ignore */ }
+try { if (!mode.kiosk) { const v = localStorage.getItem('wall-view'); if (WALL_VIEWS.includes(v)) ui.view = v; } } catch (e) { /* ignore */ }
 
 /** Phone layout: forced by ?mode=phone, or automatic on narrow screens (re-checked on rotate). */
 // Uses the same media query as the stylesheet, so layout and CSS can never disagree.
@@ -216,6 +217,10 @@ function renderWall(items, ctx, snap) {
   const app = $('#app');
   VIEWS.forEach((v) => app.classList.toggle('view-' + v, ui.view === v));
   setHtml($('#views'), viewsHtml(ui.view));
+  // Refresh stamp + settings sit beside the clock; the clock panel is hidden in
+  // the other views, so they move back into the bottom bar there.
+  const tools = $('#tools'), host = ui.view === 'week' ? $('#now-wrap') : $('.side-r');
+  if (tools.parentNode !== host) host.appendChild(tools);
   if (ui.view === 'people') setHtml($('#alt'), peopleHtml(items, ui.filter, ctx, snap.people || []));
   else if (ui.view === 'sched') setHtml($('#alt'), scheduleHtml(items, ui.filter, ctx));
   setHtml($('#now'), nowHtml(items, ui.filter, ctx));

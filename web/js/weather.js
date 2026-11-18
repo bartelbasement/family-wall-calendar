@@ -100,13 +100,14 @@ export function nowWx(weather, ymd) {
   if (!cur && !d) return '';
   const [dayIcon, nightIcon, label] = lookup(cur ? cur.code : d.code);
   const icon = cur && !cur.isDay ? nightIcon : dayIcon;
-  const parts = [];
-  if (d) parts.push(`H ${deg(d.hi)} · L ${deg(d.lo)}`);
-  if (d && d.pop != null && d.pop >= 20) parts.push(`${d.pop}% rain`);
+  // Sits beside the clock (bottom-aligned, under the corner buttons):
+  // icon + temp, then the description and high/low on two small lines.
+  const sub = [];
+  if (d) sub.push(`${deg(d.hi)}/${deg(d.lo)}`);
+  if (d && d.pop != null && d.pop >= 20) sub.push(`💧${d.pop}%`);
   return `<div class="wx-now" title="${esc(weather.place)}">
     <span class="wx-ic">${icon}</span>${cur ? `<span class="wx-t">${deg(cur.temp)}</span>` : ''}
-    <span class="wx-d">${esc(label)}${parts.length ? '<br>' + parts.join(' · ') : ''}</span>
-  </div>`;
+    <span class="wx-d"><span>${esc(label)}</span>${sub.length ? `<span>${esc(sub.join(' '))}</span>` : ''}</span></div>`;
 }
 
 /** Phone header: "🌧️ 7°". */
