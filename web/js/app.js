@@ -43,7 +43,9 @@ const ui = {
 try { if (!mode.kiosk) ui.filter = localStorage.getItem('wall-filter') || 'all'; } catch (e) { /* ignore */ }
 
 /** Phone layout: forced by ?mode=phone, or automatic on narrow screens (re-checked on rotate). */
-const isPhone = () => mode.setting === 'phone' || (mode.setting === 'auto' && window.innerWidth < 700);
+// Uses the same media query as the stylesheet, so layout and CSS can never disagree.
+const narrowMq = window.matchMedia('(max-width: 699px)');
+const isPhone = () => mode.setting === 'phone' || (mode.setting === 'auto' && narrowMq.matches);
 
 const store = createStore({ onChange: render, demoUrl: demo ? './demo/snapshot.json' : null });
 const wx = createWeather(() => render());
@@ -203,11 +205,17 @@ for (const sel of ['#week', '#todos']) {
     }
   }, { passive: false });
 }
-let wasPhone = isPhone();
-addEventListener('resize', () => {
+// Rotating across the phone/tablet line switches layouts. Mobile browsers can fire
+// resize/orientationchange before the new size applies, so check again shortly after.
+function checkLayout() {
   updateHints();
-  if (isPhone() !== wasPhone) { wasPhone = isPhone(); render(); } // rotated across the phone/tablet line
-});
+  if (isPhone() !== document.body.classList.contains('is-phone')) render();
+}
+function onRotate() { checkLayout(); setTimeout(checkLayout, 250); setTimeout(checkLayout, 1000); }
+addEventListener('resize', onRotate);
+addEventListener('orientationchange', onRotate);
+if (narrowMq.addEventListener) narrowMq.addEventListener('change', checkLayout);
+else if (narrowMq.addListener) narrowMq.addListener(checkLayout); // older Safari
 
 // ---------------------------------------------------------------- interaction
 document.addEventListener('pointerdown', () => { ui.lastTouch = Date.now(); }, { passive: true });
