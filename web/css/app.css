@@ -723,3 +723,8 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 .rt-days .opt { width: 2.6rem; height: 2.6rem; padding: 0; justify-content: center; }
 .rt-edit textarea { display: block; width: 100%; box-sizing: border-box; margin-top: .3rem; font: inherit; font-size: 1.05rem; padding: .5rem .6rem; border-radius: .6rem; border: 1px solid var(--line); background: var(--bg); color: var(--text); resize: vertical; }
 .rt-add { align-self: flex-start; }
+/* routines on phones: one column, the page scrolls */
+.is-phone .rv { display: block; padding: .6rem 0 1rem; }
+.is-phone .rv-grid { overflow: visible; grid-template-columns: minmax(0, 1fr); }
+.is-phone .rv-off { margin-top: .8rem; }
+.is-phone .rv-empty { padding: 2.5rem 1rem; }

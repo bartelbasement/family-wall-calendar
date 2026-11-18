@@ -45,7 +45,7 @@ const ui = {
   add: null,            // quick-add form state while the Add sheet is open
   status: null,         // refresh status { text, stale, warn } for the phone stamp / wall side panel
   rail: false,          // wall side panel expanded
-  tab: 'cal',           // phone layout: 'cal' | 'todo' | 'grocery'
+  tab: 'cal',           // phone layout: 'cal' | 'todo' | 'routines' | 'grocery'
   view: 'week',         // wall layout: 'week' (home) | 'people' | 'todos' | 'routines' | 'sched'
   todoMode: 'due'       // wall To-dos view: 'due' (columns by due date) | 'person'
 };
@@ -181,9 +181,11 @@ function renderPhone(items, ctx, snap) {
     setHtml($('#ph-main'), GROCERY_FORM); // constant: never rebuilt, so typing survives refreshes
     setHtml($('#gr-list'), groceryListHtml(groItems));
   } else {
-    setHtml($('#ph-main'), ui.tab === 'todo' ? phoneTodosHtml(items, ui.filter, ctx) : agendaHtml(items, ui.filter, ctx));
+    setHtml($('#ph-main'), ui.tab === 'todo' ? phoneTodosHtml(items, ui.filter, ctx)
+      : ui.tab === 'routines' ? routinesViewHtml(routinesData(), ui.filter, snap.people || [])
+      : agendaHtml(items, ui.filter, ctx));
   }
-  setHtml($('#ph-tabs'), tabsHtml(items, ui.filter, ui.tab, groItems ? groItems.filter((x) => !x.done).length : null));
+  setHtml($('#ph-tabs'), tabsHtml(items, ui.filter, ui.tab, groItems ? groItems.filter((x) => !x.done).length : null, routinesOnNow(routinesData())));
 }
 
 // ---------------------------------------------------------------- groceries
