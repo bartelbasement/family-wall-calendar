@@ -357,6 +357,14 @@ document.addEventListener('pointerdown', () => { ui.lastTouch = Date.now(); }, {
 
 document.addEventListener('click', (e) => {
   if (!$('#night').hidden) { ui.wokeAt = Date.now(); render(); return; }
+  // "Other" day/time buttons are an invisible date/time input over a label. A
+  // touch on the input opens the picker natively; a mouse click in desktop
+  // browsers only focuses the hidden field, so open the picker explicitly.
+  const pk = e.target.closest('.opt.picker');
+  if (pk && matchMedia('(pointer: fine)').matches) {
+    const inp = pk.querySelector('input');
+    try { if (inp && inp.showPicker) inp.showPicker(); } catch (err) { /* already open, or unsupported */ }
+  }
   if (settings.active()) { settings.handleClick(e.target); return; }
   if (e.target.closest('[data-settings-open]')) { ui.sheet = null; ui.add = null; settings.open(); return; }
   const t = e.target;
