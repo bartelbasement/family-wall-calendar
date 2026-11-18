@@ -26,6 +26,14 @@ var GET_ACTIONS = {
     s.ok = true;
     return s;
   },
+  // On-demand rebuild (the wall's refresh button). Rebuilds at most every 30 s.
+  refresh: function () {
+    var last = Date.parse(PropertiesService.getScriptProperties().getProperty('SNAP_LAST_OK') || 0);
+    if (!(Date.now() - last < 30000)) buildSnapshot();
+    var s = getSnapshot_();
+    s.ok = true;
+    return s;
+  },
   // Milestone 4 check: which items merged, near misses.
   mergeReport: function (p) {
     var r = getMerged_(p.fresh === '1');

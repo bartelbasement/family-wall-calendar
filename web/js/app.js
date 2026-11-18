@@ -98,7 +98,8 @@ function render() {
   $('#chips').innerHTML = chipsHtml(snap.people || [], ui.filter);
 
   const stale = store.isStale() || !!error;
-  stamp.textContent = (demo ? 'DEMO · ' : '') + 'Updated ' + clockLabel(snap.updatedAt) + (error ? ' · offline' : '');
+  stamp.textContent = store.state.refreshing ? '↻ Refreshing…'
+    : (demo ? 'DEMO · ' : '') + '↻ Updated ' + clockLabel(snap.updatedAt) + (error ? ' · offline' : '');
   stamp.className = 'stamp' + (stale ? ' stale' : '');
 
   renderSheet(items, ctx);
@@ -153,6 +154,7 @@ document.addEventListener('click', (e) => {
   const t = e.target;
   if (t.closest('[data-close]') || t.id === 'scrim') { ui.sheet = null; ui.add = null; render(); return; }
   if (t.closest('[data-add-open]')) { openAdd(); return; }
+  if (t.closest('[data-refresh]')) { store.refreshNow(); return; }
   if (ui.sheet && ui.sheet.type === 'add' && handleAddClick(t)) return;
   const u = t.closest('[data-undo]');
   if (u) { undoComplete(u.dataset.undo); return; }

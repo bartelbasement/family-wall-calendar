@@ -282,3 +282,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .add-title:focus { outline: none; border-color: var(--text); }
 .done-btn[disabled] { opacity: .4; }
 .add-sheet .done-btn { background: var(--text); color: var(--bg); }
+
+/* tap-to-refresh stamp */
+button.stamp { min-height: 2.6rem; padding: 0 .8rem; border: 1px solid var(--line); border-radius: 1.3rem; }

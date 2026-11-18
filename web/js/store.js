@@ -18,9 +18,11 @@ export function createStore({ intervalMs = 5 * 60 * 1000, onChange, demoUrl = nu
 
   const emit = () => onChange && onChange(state);
 
-  async function refresh() {
+  /** Normal poll reads the stored snapshot; force=true asks the server to rebuild it now. */
+  async function refresh(force = false) {
     clearTimeout(timer);
     state.lastAttempt = Date.now();
+    if (force) { state.refreshing = true; emit(); }
     try {
       let snap;
       if (demoUrl) {
@@ -28,8 +30,9 @@ export function createStore({ intervalMs = 5 * 60 * 1000, onChange, demoUrl = nu
         if (!res.ok) throw new Error('demo_http_' + res.status);
         snap = await res.json();
         snap.updatedAt = new Date().toISOString(); // demo data is always "fresh"
+        if (force) await new Promise((r) => setTimeout(r, 800));
       } else {
-        snap = await apiGet('snapshot');
+        snap = await apiGet(force ? 'refresh' : 'snapshot');
       }
       state.snap = snap;
       state.error = null;
@@ -39,6 +42,7 @@ export function createStore({ intervalMs = 5 * 60 * 1000, onChange, demoUrl = nu
       state.error = e.message || String(e);
       state.failures += 1;
     }
+    state.refreshing = false;
     emit();
     // Back off 30 s, 60 s, 2 min … capped at the normal interval.
     const delay = state.failures ? Math.min(30000 * 2 ** (state.failures - 1), intervalMs) : intervalMs;
@@ -53,6 +57,7 @@ export function createStore({ intervalMs = 5 * 60 * 1000, onChange, demoUrl = nu
     state,
     start() { emit(); refresh(); },
     refresh,
+    refreshNow() { if (!state.refreshing) refresh(true); },
     /** Minutes since the snapshot was built on the server (null if none). */
     ageMinutes() { return state.snap ? (Date.now() - Date.parse(state.snap.updatedAt)) / 60000 : null; },
     isStale() { const a = this.ageMinutes(); return a === null || a > STALE_MINUTES || !!state.snap.stale; }
