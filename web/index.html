@@ -34,6 +34,20 @@
     </div>
   </div>
 </div>
+<!-- Phone layout (below 700 px, or ?mode=phone): agenda + to-dos behind a bottom tab bar -->
+<div id="phone" class="phone">
+  <header class="ph-top">
+    <div class="ph-head">
+      <span id="ph-date" class="ph-date"></span>
+      <span class="ph-acts"><button id="ph-stamp" class="stamp" data-refresh title="Tap to refresh now"></button>
+      <button class="gear-btn" data-settings-open aria-label="Settings">⚙</button></span>
+    </div>
+    <div id="ph-chips" class="chips ph-chips" role="group" aria-label="Show"></div>
+  </header>
+  <div id="ph-banner" class="banner ph-banner" role="status"></div>
+  <main id="ph-main" class="ph-main"></main>
+  <nav id="ph-tabs" class="ph-tabs" aria-label="Sections"></nav>
+</div>
 <div id="scrim" class="scrim" hidden></div>
 <div id="night" class="night" hidden></div>
 <div id="toast"></div>

@@ -30,7 +30,7 @@ export function visible(item, filter) {
   return (filter === 'M' || filter === 'D') && item.people.includes('P');
 }
 
-const changeWord = (x) => x.change === 'new' ? 'New' : x.change === 'changed' ? 'Changed' : '';
+export const changeWord = (x) => x.change === 'new' ? 'New' : x.change === 'changed' ? 'Changed' : '';
 
 function timeRange(x) {
   if (x.allDay) return x.whenLabel || 'All day';
@@ -39,7 +39,7 @@ function timeRange(x) {
 }
 
 /** Events (not to-dos, not icons) for a day, all-day first, then by start. */
-function eventsOn(items, day) {
+export function eventsOn(items, day) {
   return items.filter((x) => x.section !== 'todo' && x.display !== 'icon' && x.date &&
       day >= x.date && day <= (x.endDate || x.date))
     .sort((a, b) => (a.allDay === b.allDay ? 0 : a.allDay ? -1 : 1) || String(a.start).localeCompare(String(b.start)));

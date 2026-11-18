@@ -6,6 +6,7 @@ import { getMode } from './mode.js?v=__V__';
 import { startKiosk } from './kiosk.js?v=__V__';
 import { calibrate, clockLabel, setNow, now, parts } from './time.js?v=__V__';
 import { bannerHtml, nowHtml, weekHtml, todosHtml, chipsHtml, itemSheetHtml, daySheetHtml, nightHtml, toastHtml, addSheetHtml } from './render.js?v=__V__';
+import { headHtml, agendaHtml, phoneTodosHtml, tabsHtml } from './phone.js?v=__V__';
 
 // Night hours and idle time come from settings (snapshot.options), with these defaults.
 const DEFAULT_OPTIONS = { nightStart: '21:30', nightEnd: '06:30', idleMinutes: 2 };
@@ -35,9 +36,13 @@ const ui = {
   pending: new Map(),   // to-do id -> undo timer (ticked, not yet sent)
   hidden: new Set(),    // to-do ids completed in Trello; hidden until the snapshot drops them
   toast: null,
-  add: null             // quick-add form state while the Add sheet is open
+  add: null,            // quick-add form state while the Add sheet is open
+  tab: 'cal'            // phone layout: 'cal' | 'todo'
 };
 try { if (!mode.kiosk) ui.filter = localStorage.getItem('wall-filter') || 'all'; } catch (e) { /* ignore */ }
+
+/** Phone layout: forced by ?mode=phone, or automatic on narrow screens (re-checked on rotate). */
+const isPhone = () => mode.setting === 'phone' || (mode.setting === 'auto' && window.innerWidth < 700);
 
 const store = createStore({ onChange: render, demoUrl: demo ? './demo/snapshot.json' : null });
 const settings = createSettings({
@@ -79,10 +84,14 @@ function isNightHours() {
 
 function render() {
   const { snap, error } = store.state;
-  const stamp = $('#stamp');
+  const phone = isPhone();
+  document.body.classList.toggle('is-phone', phone);
+  const stamp = phone ? $('#ph-stamp') : $('#stamp');
   if (!snap) {
-    $('#now').innerHTML = `<div class="clock">${clockLabel(now())}</div><p class="now-empty">${errorText(error)}</p>${
+    const msg = `<p class="now-empty">${errorText(error)}</p>${
       error ? `<p class="err-code">Details: ${escHtml(error)} · tap ↻ to retry</p>` : ''}`;
+    if (phone) { $('#ph-main').innerHTML = msg; $('#ph-main')._html = null; }
+    else $('#now').innerHTML = `<div class="clock">${clockLabel(now())}</div>${msg}`;
     stamp.textContent = error ? (error === 'forbidden' || error === 'missing_key' ? '↻ Key problem' : '↻ Offline') : '';
     stamp.className = 'stamp' + (error ? ' stale' : '');
     return;
@@ -100,6 +109,27 @@ function render() {
   $('#night').hidden = !night;
   if (night) { $('#night').innerHTML = nightHtml(items); return; }
 
+  if (phone) renderPhone(items, ctx, snap);
+  else renderWall(items, ctx, snap);
+
+  const stale = store.isStale() || !!error;
+  stamp.textContent = store.state.refreshing ? '↻ Refreshing…'
+    : (demo ? 'DEMO · ' : '') + '↻ ' + (phone ? '' : 'Updated ') + clockLabel(snap.updatedAt) + (error ? ' · offline' : '');
+  stamp.className = 'stamp' + (stale ? ' stale' : '');
+
+  renderSheet(items, ctx);
+  $('#toast').innerHTML = toastHtml(ui.toast);
+}
+
+function renderPhone(items, ctx, snap) {
+  setHtml($('#ph-date'), headHtml());
+  setHtml($('#ph-banner'), bannerHtml(items, 'all'));
+  setHtml($('#ph-chips'), chipsHtml(snap.people || [], ui.filter));
+  setHtml($('#ph-main'), ui.tab === 'todo' ? phoneTodosHtml(items, ui.filter, ctx) : agendaHtml(items, ui.filter, ctx));
+  setHtml($('#ph-tabs'), tabsHtml(items, ui.filter, ui.tab));
+}
+
+function renderWall(items, ctx, snap) {
   setHtml($('#banner'), bannerHtml(items, 'all')); // alerts matter to everyone: ignore the filter
   setHtml($('#now'), nowHtml(items, ui.filter, ctx));
   // Scroll strips are only rebuilt when their content changes: rewriting them
@@ -107,15 +137,7 @@ function render() {
   setStrip($('#week'), weekHtml(items, ui.filter, ctx));
   setStrip($('#todos'), todosHtml(items, ui.filter, ctx));
   updateHints();
-  $('#chips').innerHTML = chipsHtml(snap.people || [], ui.filter);
-
-  const stale = store.isStale() || !!error;
-  stamp.textContent = store.state.refreshing ? '↻ Refreshing…'
-    : (demo ? 'DEMO · ' : '') + '↻ Updated ' + clockLabel(snap.updatedAt) + (error ? ' · offline' : '');
-  stamp.className = 'stamp' + (stale ? ' stale' : '');
-
-  renderSheet(items, ctx);
-  $('#toast').innerHTML = toastHtml(ui.toast);
+  setHtml($('#chips'), chipsHtml(snap.people || [], ui.filter));
 }
 
 const escHtml = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -177,7 +199,11 @@ for (const sel of ['#week', '#todos']) {
     }
   }, { passive: false });
 }
-addEventListener('resize', updateHints);
+let wasPhone = isPhone();
+addEventListener('resize', () => {
+  updateHints();
+  if (isPhone() !== wasPhone) { wasPhone = isPhone(); render(); } // rotated across the phone/tablet line
+});
 
 // ---------------------------------------------------------------- interaction
 document.addEventListener('pointerdown', () => { ui.lastTouch = Date.now(); }, { passive: true });
@@ -190,6 +216,12 @@ document.addEventListener('click', (e) => {
   if (t.closest('[data-close]') || t.id === 'scrim') { ui.sheet = null; ui.add = null; render(); return; }
   if (t.closest('[data-add-open]')) { openAdd(); return; }
   if (t.closest('[data-refresh]')) { store.refreshNow(); return; }
+  const tab = t.closest('[data-tab]');
+  if (tab) {
+    if (ui.tab !== tab.dataset.tab) { ui.tab = tab.dataset.tab; render(); }
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // tapping the current tab jumps to the top
+    return;
+  }
   if (ui.sheet && ui.sheet.type === 'add' && handleAddClick(t)) return;
   const u = t.closest('[data-undo]');
   if (u) { undoComplete(u.dataset.undo); return; }
