@@ -259,7 +259,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .todos-wrap.at-end::after { content: none; }
 .todos { padding-right: 2.5rem; scroll-snap-type: x proximity; }
-.todo { scroll-snap-align: start; }
+.todo, .todos-h { scroll-snap-align: start; } /* the label is a snap point, so "start" really is 0 */
+.todos, .week { -webkit-transform: translateZ(0); transform: translateZ(0); } /* own layer: iPad Safari repaints off-screen cards */
 
 /* quick add */
 .side-r { display: flex; align-items: center; gap: .8rem; }

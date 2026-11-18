@@ -100,15 +100,12 @@ function render() {
   $('#night').hidden = !night;
   if (night) { $('#night').innerHTML = nightHtml(items); return; }
 
-  $('#banner').innerHTML = bannerHtml(items, 'all'); // alerts matter to everyone: ignore the filter
-  $('#now').innerHTML = nowHtml(items, ui.filter, ctx);
-  const wk = $('#week'), keep = wk.scrollLeft;
-  wk.innerHTML = weekHtml(items, ui.filter, ctx);
-  wk.scrollLeft = keep;
-  updateWeekHint();
-  const td = $('#todos'), keepTd = td.scrollLeft;
-  td.innerHTML = todosHtml(items, ui.filter, ctx);
-  td.scrollLeft = keepTd;
+  setHtml($('#banner'), bannerHtml(items, 'all')); // alerts matter to everyone: ignore the filter
+  setHtml($('#now'), nowHtml(items, ui.filter, ctx));
+  // Scroll strips are only rebuilt when their content changes: rewriting them
+  // every minute interrupts swipes and leaves iPad Safari with unpainted cards.
+  setStrip($('#week'), weekHtml(items, ui.filter, ctx));
+  setStrip($('#todos'), todosHtml(items, ui.filter, ctx));
   updateHints();
   $('#chips').innerHTML = chipsHtml(snap.people || [], ui.filter);
 
@@ -154,13 +151,22 @@ function renderSheet(items, ctx) {
 
 // Sideways strips (days, to-dos): show a › hint while more is off-screen, and
 // let a normal mouse wheel scroll them sideways on PCs.
+function setHtml(el, html) {
+  if (el._html === html) return false;
+  el.innerHTML = html; el._html = html;
+  return true;
+}
+function setStrip(el, html) {
+  const keep = el.scrollLeft;
+  if (setHtml(el, html)) el.scrollLeft = keep;
+}
+
 function updateHints() {
   for (const [stripSel, wrapSel] of [['#week', '#week-wrap'], ['#todos', '#todos-wrap']]) {
     const el = $(stripSel);
     $(wrapSel).classList.toggle('at-end', el.scrollLeft + el.clientWidth >= el.scrollWidth - 4);
   }
 }
-const updateWeekHint = updateHints;
 for (const sel of ['#week', '#todos']) {
   const el = $(sel);
   el.addEventListener('scroll', updateHints, { passive: true });
@@ -335,9 +341,10 @@ async function commitComplete(id) {
 // Wall: drift back to the home state when nobody is using it.
 if (mode.kiosk) {
   setInterval(() => {
-    if (Date.now() - ui.lastTouch > idleMs() && (ui.sheet || settings.active() || ui.filter !== 'all' || $('#week').scrollLeft > 0 || $('#todos').scrollLeft > 0)) {
+    if (Date.now() - ui.lastTouch > idleMs() && (ui.sheet || settings.active() || ui.filter !== 'all' || $('#week').scrollLeft > 4 || $('#todos').scrollLeft > 4)) {
       if (settings.active()) settings.close();
       ui.sheet = null; ui.add = null; ui.filter = 'all'; render();
+      ui.lastTouch = Date.now(); // reset once per idle spell, never in a loop
       $('#week').scrollTo({ left: 0, behavior: 'smooth' });
       $('#todos').scrollTo({ left: 0, behavior: 'smooth' });
     }
