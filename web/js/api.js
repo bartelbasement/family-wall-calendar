@@ -22,7 +22,7 @@ export async function apiGet(action, params = {}) {
   const res = await fetch(`${API_URL}?${qs}`, { redirect: 'follow' });
   if (!res.ok) throw new Error(`http_${res.status}`);
   const data = await res.json();
-  if (!data.ok) throw new Error(data.error || 'api_error');
+  if (!data.ok) throw new Error(data.message || data.error || 'api_error');
   return data;
 }
 
@@ -38,6 +38,6 @@ export async function apiPost(action, body = {}) {
   });
   if (!res.ok) throw new Error(`http_${res.status}`);
   const data = await res.json();
-  if (!data.ok) throw new Error(data.error || 'api_error');
+  if (!data.ok) throw new Error(data.message || data.error || 'api_error');
   return data;
 }

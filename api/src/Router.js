@@ -49,7 +49,9 @@ var GET_ACTIONS = {
 var POST_ACTIONS = {
   completeTodo: function (b) { return completeTodo_(b); },
   addEvent: function (b) { return addEvent_(b); },
-  addTodo: function (b) { return addTodo_(b); }
+  addTodo: function (b) { return addTodo_(b); },
+  getSettings: function (b) { return getSettingsForEditor_(b); },
+  saveSettings: function (b) { return saveSettings_(b); }
 };
 
 function doGet(e) {

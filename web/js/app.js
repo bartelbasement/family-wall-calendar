@@ -1,12 +1,17 @@
 import { getKey, apiPost } from './api.js?v=__V__';
+import { createSettings } from './settings.js?v=__V__';
+import { applyPeopleColors } from './theme.js?v=__V__';
 import { createStore } from './store.js?v=__V__';
 import { getMode } from './mode.js?v=__V__';
 import { startKiosk } from './kiosk.js?v=__V__';
 import { calibrate, clockLabel, setNow, now, parts } from './time.js?v=__V__';
 import { bannerHtml, nowHtml, weekHtml, todosHtml, chipsHtml, itemSheetHtml, daySheetHtml, nightHtml, toastHtml, addSheetHtml } from './render.js?v=__V__';
 
-const IDLE_MS = 2 * 60 * 1000;        // wall: return home after 2 min without a touch
-const NIGHT = { start: 21 * 60 + 30, end: 6 * 60 + 30 }; // 9:30 pm – 6:30 am (settings later)
+// Night hours and idle time come from settings (snapshot.options), with these defaults.
+const DEFAULT_OPTIONS = { nightStart: '21:30', nightEnd: '06:30', idleMinutes: 2 };
+const opts = () => Object.assign({}, DEFAULT_OPTIONS, (store.state.snap && store.state.snap.options) || {});
+const toMin = (hhmm) => { const [h, m] = String(hhmm).split(':').map(Number); return h * 60 + m; };
+const idleMs = () => Math.max(1, Number(opts().idleMinutes) || 2) * 60 * 1000;
 const WAKE_MS = 2 * 60 * 1000;        // a tap at night shows the dark full view for 2 min
 const UNDO_MS = 5000;                 // time to undo a to-do tick before it is written to Trello
 
@@ -35,6 +40,16 @@ const ui = {
 try { if (!mode.kiosk) ui.filter = localStorage.getItem('wall-filter') || 'all'; } catch (e) { /* ignore */ }
 
 const store = createStore({ onChange: render, demoUrl: demo ? './demo/snapshot.json' : null });
+const settings = createSettings({
+  demo,
+  getSnap: () => store.state.snap,
+  onSaved: () => {
+    ui.toast = { kind: 'ok', text: 'Settings saved' };
+    setTimeout(() => { if (ui.toast && ui.toast.kind === 'ok') { ui.toast = null; render(); } }, 3000);
+    if (demo) render(); else store.refresh();
+  },
+  onClose: () => render()
+});
 
 function ctxFor(snap) {
   const names = {}, badge = {};
@@ -45,10 +60,7 @@ function ctxFor(snap) {
 function isNight() {
   if (!mode.kiosk && themeParam !== 'night') return false;
   if (themeParam === 'night') return Date.now() - ui.wokeAt > WAKE_MS;
-  const p = parts(now());
-  const m = p.h * 60 + p.mi;
-  const inNight = NIGHT.start > NIGHT.end ? (m >= NIGHT.start || m < NIGHT.end) : (m >= NIGHT.start && m < NIGHT.end);
-  return inNight && Date.now() - ui.wokeAt > WAKE_MS;
+  return isNightHours() && Date.now() - ui.wokeAt > WAKE_MS;
 }
 
 function applyTheme(night) {
@@ -60,7 +72,9 @@ function applyTheme(night) {
 }
 function isNightHours() {
   const p = parts(now()); const m = p.h * 60 + p.mi;
-  return NIGHT.start > NIGHT.end ? (m >= NIGHT.start || m < NIGHT.end) : (m >= NIGHT.start && m < NIGHT.end);
+  const start = toMin(opts().nightStart), end = toMin(opts().nightEnd);
+  if (start === end) return false;
+  return start > end ? (m >= start || m < end) : (m >= start && m < end);
 }
 
 function render() {
@@ -74,6 +88,7 @@ function render() {
     return;
   }
   calibrate(snap.tzOffset);
+  applyPeopleColors(snap.people);
   const ctx = ctxFor(snap);
   ctx.pending = new Set(ui.pending.keys());
   const present = new Set((snap.items || []).map((x) => x.id));
@@ -108,6 +123,7 @@ function render() {
 
 function renderSheet(items, ctx) {
   const scrim = $('#scrim');
+  if (settings.active()) return; // the settings module owns the sheet while open
   if (!ui.sheet) { scrim.hidden = true; scrim.innerHTML = ''; return; }
   let html = '';
   if (ui.sheet.type === 'add') {
@@ -151,6 +167,8 @@ document.addEventListener('pointerdown', () => { ui.lastTouch = Date.now(); }, {
 
 document.addEventListener('click', (e) => {
   if (!$('#night').hidden) { ui.wokeAt = Date.now(); render(); return; }
+  if (settings.active()) { settings.handleClick(e.target); return; }
+  if (e.target.closest('[data-settings-open]')) { ui.sheet = null; ui.add = null; settings.open(); return; }
   const t = e.target;
   if (t.closest('[data-close]') || t.id === 'scrim') { ui.sheet = null; ui.add = null; render(); return; }
   if (t.closest('[data-add-open]')) { openAdd(); return; }
@@ -173,6 +191,7 @@ document.addEventListener('click', (e) => {
 });
 
 document.addEventListener('keydown', (e) => {
+  if (settings.handleKey(e)) { e.preventDefault(); return; }
   if (e.key === 'Escape' && ui.sheet) { ui.sheet = null; ui.add = null; render(); }
   if (e.key === 'Enter' && e.target.id === 'add-title') { e.preventDefault(); submitAdd(); }
 });
@@ -222,6 +241,7 @@ function handleAddClick(t) {
 }
 
 document.addEventListener('input', (e) => {
+  settings.handleInput(e);
   if (!ui.add) return;
   if (e.target.id === 'add-title') {
     ui.add.title = e.target.value;
@@ -230,6 +250,7 @@ document.addEventListener('input', (e) => {
   }
 });
 document.addEventListener('change', (e) => {
+  settings.handleChange(e);
   if (!ui.add) return;
   if (e.target.id === 'add-date' && e.target.value) { ui.add.date = e.target.value; drawAdd(); }
   if (e.target.id === 'add-time' && e.target.value) { ui.add.time = e.target.value; drawAdd(); }
@@ -303,8 +324,9 @@ async function commitComplete(id) {
 // Wall: drift back to the home state when nobody is using it.
 if (mode.kiosk) {
   setInterval(() => {
-    if (Date.now() - ui.lastTouch > IDLE_MS && (ui.sheet || ui.filter !== 'all' || $('#week').scrollLeft > 0 || $('#todos').scrollLeft > 0)) {
-      ui.sheet = null; ui.filter = 'all'; render();
+    if (Date.now() - ui.lastTouch > idleMs() && (ui.sheet || settings.active() || ui.filter !== 'all' || $('#week').scrollLeft > 0 || $('#todos').scrollLeft > 0)) {
+      if (settings.active()) settings.close();
+      ui.sheet = null; ui.add = null; ui.filter = 'all'; render();
       $('#week').scrollTo({ left: 0, behavior: 'smooth' });
       $('#todos').scrollTo({ left: 0, behavior: 'smooth' });
     }

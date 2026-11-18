@@ -37,6 +37,7 @@ function buildSnapshot() {
   var props = PropertiesService.getScriptProperties();
   try {
     var r = getMerged_(true);
+    var cfg = getConfig_();
     var tz = Session.getScriptTimeZone(), now = new Date();
     writeSnapshot_({
       version: 1,
@@ -46,7 +47,10 @@ function buildSnapshot() {
       tzOffset: Utilities.formatDate(now, tz, 'XXX'),
       today: Utilities.formatDate(now, tz, 'yyyy-MM-dd'),
       sourceErrors: r.errors,
-      people: getConfig_().people.map(function (p) { return { code: p.code, name: p.name, badge: p.badge || p.code }; }),
+      people: cfg.people.map(function (p) {
+        return { code: p.code, name: p.name, badge: p.badge || p.code, swatch: p.swatch || DEFAULT_SWATCH_[p.code] || 'slate' };
+      }),
+      options: cfg.options,
       items: r.items
     });
     props.setProperty('SNAP_LAST_OK', now.toISOString());

@@ -14,12 +14,13 @@ export function bandCode(people) {
   const kids = people.filter((p) => KIDS.includes(p));
   if (kids.length === 1) return kids[0];
   if (kids.length > 1) return 'F';
-  return people.some((p) => ADULTS.includes(p)) ? 'A' : 'F';
+  const adult = people.find((p) => ADULTS.includes(p));
+  return adult || 'F';
 }
 
 export function badges(people, ctx) {
   return `<span class="badges">${people.map((p) =>
-    `<span class="badge p-${p === 'F' ? 'F' : ADULTS.includes(p) ? 'A' : p}" title="${esc(ctx.names[p] || p)}">${esc(ctx.badge[p] || p)}</span>`).join('')}</span>`;
+    `<span class="badge p-${p}" title="${esc(ctx.names[p] || p)}">${esc(ctx.badge[p] || p)}</span>`).join('')}</span>`;
 }
 
 /** Filter: Mom/Dad also show Parent items; Family shows F. */
@@ -126,7 +127,7 @@ export function weekHtml(items, filter, ctx) {
       <button class="day-h" data-day="${d}">
         <span><span class="dow">${d === addDays(today, 1) ? 'TOMORROW' : label.toUpperCase()}</span><br><span class="num">${Number(dd)}</span></span>
         <span class="icons">${esc(icons)}</span>
-        <span class="dots">${dots.map((p) => `<i class="p-${ADULTS.includes(p) ? 'A' : p}"></i>`).join('')}</span>
+        <span class="dots">${dots.map((p) => `<i class="p-${p}"></i>`).join('')}</span>
       </button>
       ${shown.map((x) => pillHtml(x, ctx, d === today && !x.allDay && Date.parse(x.end || x.start) < tNow)).join('')}
       ${rest > 0 ? `<button class="more" data-day="${d}">+${rest} more</button>` : ''}
@@ -157,7 +158,7 @@ export function todosHtml(items, filter, ctx) {
 export function chipsHtml(people, filter) {
   const list = [{ code: 'all', name: 'All' }].concat(people.filter((p) => p.code !== 'P'));
   return list.map((p) => `<button class="chip" data-filter="${p.code}" aria-pressed="${filter === p.code}">
-    ${p.code === 'all' ? 'All' : `<span class="badge p-${ADULTS.includes(p.code) ? 'A' : p.code}">${esc(p.badge || p.code)}</span>${esc(p.name)}`}
+    ${p.code === 'all' ? 'All' : `<span class="badge p-${p.code}">${esc(p.badge || p.code)}</span>${esc(p.name)}`}
   </button>`).join('');
 }
 
@@ -266,7 +267,7 @@ export function addSheetHtml(f, people) {
 
     <div class="add-h">Who</div>
     <div class="opts">${who.map((p) => `<button class="opt who-opt" data-add-person="${p.code}" ${sel(f.people.includes(p.code))}>
-      <span class="badge p-${['M', 'D', 'P'].includes(p.code) ? 'A' : p.code}">${esc(p.badge || p.code)}</span>${esc(p.name)}</button>`).join('')}</div>
+      <span class="badge p-${p.code}">${esc(p.badge || p.code)}</span>${esc(p.name)}</button>`).join('')}</div>
 
     <div class="add-h">${isEvent ? 'Day' : 'Due'}</div>
     <div class="opts">

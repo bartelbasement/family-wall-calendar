@@ -1,8 +1,8 @@
 /**
  * Runtime configuration. Generic defaults live here; family-specific values
  * (names, board ID, keywords) come from Private.js, which is git-ignored but
- * pushed by clasp. The on-wall settings screen (later) will override both via
- * Script Properties.
+ * pushed by clasp. The on-wall settings screen overrides both via Script
+ * Properties (see Settings.js).
  */
 
 var CONFIG_DEFAULTS_ = {
@@ -36,5 +36,5 @@ function getConfig_() {
   if (priv.addCalendarId) cfg.addCalendarId = priv.addCalendarId;
   if (priv.merge) Object.keys(priv.merge).forEach(function (k) { cfg.merge[k] = priv.merge[k]; });
   if (!cfg.trello.boardId) throw new Error('Trello boardId is not configured (see Private.example.js)');
-  return cfg;
+  return applySettings_(cfg); // wall-edited settings (Settings.js) win over Private.js
 }
