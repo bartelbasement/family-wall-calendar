@@ -51,6 +51,9 @@ var POST_ACTIONS = {
   addEvent: function (b) { return addEvent_(b); },
   addTodo: function (b) { return addTodo_(b); },
   setPeople: function (b) { return setPeople_(b); },
+  groceryAdd: function (b) { return groceryWrite_('add', b); },
+  groceryToggle: function (b) { return groceryWrite_('toggle', b); },
+  groceryClear: function (b) { return groceryWrite_('clear', b); },
   getSettings: function (b) { return getSettingsForEditor_(b); },
   saveSettings: function (b) { return saveSettings_(b); }
 };

@@ -39,6 +39,12 @@ function buildSnapshot() {
     var r = getMerged_(true);
     var cfg = getConfig_();
     var tz = Session.getScriptTimeZone(), now = new Date();
+    var grocery = null;
+    try { grocery = readGrocery_(cfg); } catch (e) {
+      console.warn('grocery read failed: ' + e);
+      var prev = readSnapshot_();
+      grocery = prev ? prev.grocery || null : null; // keep the last good list
+    }
     writeSnapshot_({
       version: 1,
       updatedAt: now.toISOString(),
@@ -52,6 +58,7 @@ function buildSnapshot() {
       }),
       options: cfg.options,
       weatherAt: weatherLocation_(cfg), // clients fetch the forecast (see Weather.js)
+      grocery: grocery,
       items: r.items
     });
     props.setProperty('SNAP_LAST_OK', now.toISOString());

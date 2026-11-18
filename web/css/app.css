@@ -454,3 +454,26 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 .who-actions { display: grid; grid-template-columns: auto 1fr; gap: .6rem; margin-top: .9rem; align-items: stretch; }
 .who-actions .done-btn { margin-top: 0; }
 .who-actions .opt { padding: 0 1.2rem; }
+
+/* ---------- groceries (M9) ---------- */
+.gr-add { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; margin: .8rem 0 .6rem; }
+#gr-input { font: inherit; font-size: 1.05rem; min-height: 3rem; padding: 0 .9rem; border: 1px solid var(--line); border-radius: .7rem; background: var(--surface); color: var(--text); -webkit-user-select: text; user-select: text; min-width: 0; }
+.gr-add-btn { width: 3rem; min-height: 3rem; border-radius: .7rem; background: var(--text); color: var(--bg); font-size: 1.4rem; font-weight: 800; display: grid; place-items: center; }
+.gr-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .8rem; align-items: center; width: 100%; padding: .7rem .4rem; border-bottom: 1px solid var(--line); font-size: 1.05rem; }
+.gr-row .box { width: 1.7rem; height: 1.7rem; border: .15rem solid var(--muted); border-radius: .4rem; display: grid; place-items: center; font-weight: 800; }
+.gr-row.done { color: var(--muted); }
+.gr-row.done .gr-name { text-decoration: line-through; }
+.gr-row.done .box { background: var(--muted); border-color: var(--muted); color: var(--bg); }
+.gr-row.saving { opacity: .6; }
+.gr-name { overflow-wrap: anywhere; }
+.gr-done-h { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding: .3rem .4rem; font-size: .85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.gr-clear { text-transform: none; letter-spacing: 0; font-size: .9rem; border: 1px solid var(--line); border-radius: 1.2rem; padding: .35rem .8rem; min-height: 2.4rem; color: var(--text); }
+.gr-empty { color: var(--muted); text-align: center; margin: 2rem 0; }
+.gr-sheet .gr-list { max-height: 60dvh; overflow-y: auto; }
+.gro-btn { position: relative; height: 3.1rem; min-width: 3.1rem; padding: 0 .8rem; border-radius: 1.6rem; border: 1px solid var(--line); font-size: 1.3rem; display: inline-flex; align-items: center; gap: .3rem; }
+.gro-btn[hidden] { display: none; }
+.gro-btn b { font-size: .9rem; }
+.gro-btn b:empty { display: none; }
+.ph-tabs { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 1fr; }
+.ph-tab .count.muted { background: var(--muted); }
+.tab-grocery .ph-chips { display: none; }

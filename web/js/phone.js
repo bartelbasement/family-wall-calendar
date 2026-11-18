@@ -80,10 +80,14 @@ export function phoneTodosHtml(items, filter, ctx) {
 }
 
 // ---------------------------------------------------------------- tab bar
-export function tabsHtml(items, filter, tab) {
+/** groceryCount: open grocery items, or null when no grocery list is set up (tab hidden). */
+export function tabsHtml(items, filter, tab, groceryCount) {
   const n = openTodos(items, filter).length;
   const cur = (t) => tab === t ? 'aria-current="page"' : '';
+  const gro = groceryCount == null ? '' :
+    `<button class="ph-tab" data-tab="grocery" ${cur('grocery')}><span class="ic">🛒${groceryCount ? `<b class="count muted">${groceryCount}</b>` : ''}</span><span>Groceries</span></button>`;
   return `<button class="ph-tab" data-tab="cal" ${cur('cal')}><span class="ic">📅</span><span>Calendar</span></button>
     <button class="ph-tab" data-tab="todo" ${cur('todo')}><span class="ic">☑️${n ? `<b class="count">${n}</b>` : ''}</span><span>To-dos</span></button>
+    ${gro}
     <button class="ph-tab ph-add" data-add-open><span class="ic">＋</span><span>Add</span></button>`;
 }

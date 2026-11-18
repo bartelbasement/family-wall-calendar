@@ -13,6 +13,8 @@ var PRIVATE_CONFIG = {
     { id: 'family123@group.calendar.google.com' },
     { id: 'someone@gmail.com', defaultPerson: 'D' }
   ],
+  // Optional: grocery list = checklist on this Trello card (id or short link), on the same board.
+  grocery: { card: 'AbCd1234' },
   // Optional: Open-Meteo weather for a town-level point. Leave out for no weather.
   weather: { lat: 49.28, lon: -123.12, name: 'Your town' },
   people: [

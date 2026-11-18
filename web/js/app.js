@@ -8,6 +8,7 @@ import { calibrate, clockLabel, setNow, now, parts } from './time.js?v=__V__';
 import { bannerHtml, nowHtml, weekHtml, todosHtml, chipsHtml, itemSheetHtml, daySheetHtml, nightHtml, toastHtml, addSheetHtml, retagChoices } from './render.js?v=__V__';
 import { headHtml, agendaHtml, phoneTodosHtml, tabsHtml } from './phone.js?v=__V__';
 import { createWeather } from './weather.js?v=__V__';
+import { GROCERY_FORM, groceryListHtml, grocerySheetHtml } from './grocery.js?v=__V__';
 
 // Night hours and idle time come from settings (snapshot.options), with these defaults.
 const DEFAULT_OPTIONS = { nightStart: '21:30', nightEnd: '06:30', idleMinutes: 2 };
@@ -128,11 +129,82 @@ function render() {
 }
 
 function renderPhone(items, ctx, snap) {
+  const groItems = groceryItems();
+  if (ui.tab === 'grocery' && !groItems) ui.tab = 'cal';
   setHtml($('#ph-date'), headHtml(ctx.weather));
   setHtml($('#ph-banner'), bannerHtml(items, 'all'));
   setHtml($('#ph-chips'), chipsHtml(snap.people || [], ui.filter));
-  setHtml($('#ph-main'), ui.tab === 'todo' ? phoneTodosHtml(items, ui.filter, ctx) : agendaHtml(items, ui.filter, ctx));
-  setHtml($('#ph-tabs'), tabsHtml(items, ui.filter, ui.tab));
+  document.body.classList.toggle('tab-grocery', ui.tab === 'grocery');
+  if (ui.tab === 'grocery') {
+    setHtml($('#ph-main'), GROCERY_FORM); // constant: never rebuilt, so typing survives refreshes
+    setHtml($('#gr-list'), groceryListHtml(groItems));
+  } else {
+    setHtml($('#ph-main'), ui.tab === 'todo' ? phoneTodosHtml(items, ui.filter, ctx) : agendaHtml(items, ui.filter, ctx));
+  }
+  setHtml($('#ph-tabs'), tabsHtml(items, ui.filter, ui.tab, groItems ? groItems.filter((x) => !x.done).length : null));
+}
+
+// ---------------------------------------------------------------- groceries
+// The server list (snap.grocery) is shown, except while writes are in flight:
+// then a local copy with the optimistic changes is shown instead.
+const gro = { items: null, busy: 0 };
+let groQueue = Promise.resolve();
+
+/** Items to show, or null when no grocery list is set up. */
+function groceryItems() {
+  if (gro.busy) return gro.items;
+  const g = store.state.snap && store.state.snap.grocery;
+  return g ? g.items || [] : null;
+}
+
+function groceryOp(action, body, change) {
+  if (!gro.busy) gro.items = (groceryItems() || []).map((x) => Object.assign({}, x));
+  gro.busy++;
+  change(gro.items);
+  render();
+  const requestId = crypto.randomUUID();
+  groQueue = groQueue.then(async () => {
+    try {
+      const r = demo ? { grocery: { items: gro.items.map((x) => Object.assign({}, x, { id: String(x.id).replace(/^tmp-/, 'demo-') })) } }
+        : await apiPost(action, Object.assign({}, body, { requestId }));
+      // Only the newest write's answer replaces the list, so earlier answers can't undo later taps.
+      if (gro.busy === 1 && store.state.snap) store.state.snap.grocery = r.grocery;
+    } catch (err) {
+      ui.toast = { kind: 'error', text: 'Couldn’t update the grocery list. Check the connection and try again.' };
+      setTimeout(() => { if (ui.toast && ui.toast.kind === 'error') { ui.toast = null; render(); } }, 6000);
+    } finally {
+      gro.busy--;
+      render();
+    }
+  });
+}
+
+function groceryAdd() {
+  const input = $('#gr-input');
+  const name = input ? input.value.replace(/\s+/g, ' ').trim() : '';
+  if (!name) return;
+  input.value = '';
+  input.focus();
+  groceryOp('groceryAdd', { name }, (items) => items.push({ id: 'tmp-' + crypto.randomUUID(), name, done: false }));
+}
+
+function handleGroceryClick(t) {
+  if (t.closest('[data-gr-add]')) { groceryAdd(); return true; }
+  const row = t.closest('[data-gr-toggle]');
+  if (row) {
+    const id = row.dataset.grToggle;
+    if (id.startsWith('tmp-')) return true; // still being added
+    const item = (groceryItems() || []).find((x) => x.id === id);
+    if (!item) return true;
+    const done = !item.done;
+    groceryOp('groceryToggle', { itemId: id, done }, (items) => { const x = items.find((i) => i.id === id); if (x) x.done = done; });
+    return true;
+  }
+  if (t.closest('[data-gr-clear]')) {
+    groceryOp('groceryClear', {}, (items) => { for (let i = items.length - 1; i >= 0; i--) if (items[i].done) items.splice(i, 1); });
+    return true;
+  }
+  return false;
 }
 
 function renderWall(items, ctx, snap) {
@@ -144,6 +216,10 @@ function renderWall(items, ctx, snap) {
   setStrip($('#todos'), todosHtml(items, ui.filter, ctx));
   updateHints();
   setHtml($('#chips'), chipsHtml(snap.people || [], ui.filter));
+  const groItems = groceryItems();
+  $('#gro-btn').hidden = !groItems;
+  const open = groItems ? groItems.filter((x) => !x.done).length : 0;
+  setHtml($('#gro-count'), open ? String(open) : '');
 }
 
 const escHtml = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -162,6 +238,14 @@ function renderSheet(items, ctx) {
   if (settings.active()) return; // the settings module owns the sheet while open
   if (!ui.sheet) { scrim.hidden = true; scrim.innerHTML = ''; return; }
   let html = '';
+  if (ui.sheet.type === 'grocery') {
+    const items = groceryItems();
+    if (!items) { ui.sheet = null; scrim.hidden = true; return; }
+    if (!scrim.querySelector('.gr-sheet')) { scrim.innerHTML = grocerySheetHtml(); $('#gr-list')._html = null; }
+    scrim.hidden = false;
+    setHtml($('#gr-list'), groceryListHtml(items));
+    return;
+  }
   if (ui.sheet.type === 'add') {
     // Never rebuild the form on background refreshes: it would wipe what is being typed.
     if (scrim.querySelector('.add-sheet')) return;
@@ -227,6 +311,8 @@ document.addEventListener('click', (e) => {
   const t = e.target;
   if (t.closest('[data-close]') || t.id === 'scrim') { ui.sheet = null; ui.add = null; render(); return; }
   if (t.closest('[data-add-open]')) { openAdd(); return; }
+  if (t.closest('[data-grocery-open]')) { ui.sheet = { type: 'grocery' }; render(); return; }
+  if (handleGroceryClick(t)) return;
   if (t.closest('[data-refresh]')) { store.refreshNow(); return; }
   const tab = t.closest('[data-tab]');
   if (tab) {
@@ -256,6 +342,7 @@ document.addEventListener('keydown', (e) => {
   if (settings.handleKey(e)) { e.preventDefault(); return; }
   if (e.key === 'Escape' && ui.sheet) { ui.sheet = null; ui.add = null; render(); }
   if (e.key === 'Enter' && e.target.id === 'add-title') { e.preventDefault(); submitAdd(); }
+  if (e.key === 'Enter' && e.target.id === 'gr-input') { e.preventDefault(); groceryAdd(); }
 });
 
 // ---------------------------------------------------------------- quick add
