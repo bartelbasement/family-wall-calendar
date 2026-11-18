@@ -34,6 +34,7 @@ function getConfig_() {
   if (priv.windowDays) cfg.windowDays = priv.windowDays;
   if (priv.calendars) cfg.calendars = priv.calendars;
   if (priv.addCalendarId) cfg.addCalendarId = priv.addCalendarId;
+  if (priv.weather) cfg.weather = priv.weather;
   if (priv.merge) Object.keys(priv.merge).forEach(function (k) { cfg.merge[k] = priv.merge[k]; });
   if (!cfg.trello.boardId) throw new Error('Trello boardId is not configured (see Private.example.js)');
   return applySettings_(cfg); // wall-edited settings (Settings.js) win over Private.js

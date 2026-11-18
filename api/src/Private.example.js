@@ -13,6 +13,8 @@ var PRIVATE_CONFIG = {
     { id: 'family123@group.calendar.google.com' },
     { id: 'someone@gmail.com', defaultPerson: 'D' }
   ],
+  // Optional: Open-Meteo weather for a town-level point. Leave out for no weather.
+  weather: { lat: 49.28, lon: -123.12, name: 'Your town' },
   people: [
     { code: 'S', name: 'Kid One',   badge: 'S', trelloLabels: ['Kid One'],   keywords: ['kid one'] },
     { code: 'R', name: 'Kid Two',   badge: 'R', trelloLabels: ['Kid Two'],   keywords: ['kid two'] },

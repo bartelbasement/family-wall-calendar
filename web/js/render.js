@@ -1,5 +1,6 @@
 // Pure HTML builders for the Now + Week view. No DOM access here.
 import { now, ymd, todayYmd, addDays, timeLabel, clockLabel, dayLabel, longDateLabel, parts } from './time.js?v=__V__';
+import { nowWx, dayWx } from './weather.js?v=__V__';
 
 const KIDS = ['S', 'R', 'C'];
 const ADULTS = ['M', 'D', 'P'];
@@ -68,7 +69,7 @@ export function nowHtml(items, filter, ctx) {
   const nextIdx = shown.findIndex((x) => Date.parse(x.start) > t.getTime());
 
   let html = `<div class="clock">${clockLabel(t)}<span class="ampm">${p.h < 12 ? 'am' : 'pm'}</span></div>
-    <div class="date">${esc(longDateLabel(today))}</div>`;
+    <div class="date">${esc(longDateLabel(today))}</div>${nowWx(ctx.weather, today)}`;
   const icons = items.filter((x) => x.display === 'icon' && x.date === today);
   if (allDay.length || icons.length) {
     html += `<div class="allday-today">${icons.map((x) =>
@@ -127,6 +128,7 @@ export function weekHtml(items, filter, ctx) {
       <button class="day-h" data-day="${d}">
         <span><span class="dow">${d === addDays(today, 1) ? 'TOMORROW' : label.toUpperCase()}</span><br><span class="num">${Number(dd)}</span></span>
         <span class="icons">${esc(icons)}</span>
+        <span class="wx-row">${dayWx(ctx.weather, d)}</span>
         <span class="dots">${dots.map((p) => `<i class="p-${p}"></i>`).join('')}</span>
       </button>
       ${shown.map((x) => pillHtml(x, ctx, d === today && !x.allDay && Date.parse(x.end || x.start) < tNow)).join('')}

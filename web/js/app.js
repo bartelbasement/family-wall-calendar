@@ -59,7 +59,7 @@ const settings = createSettings({
 function ctxFor(snap) {
   const names = {}, badge = {};
   (snap.people || []).forEach((p) => { names[p.code] = p.name; badge[p.code] = p.badge || p.code; });
-  return { names, badge };
+  return { names, badge, weather: snap.weather || null };
 }
 
 function isNight() {
@@ -122,7 +122,7 @@ function render() {
 }
 
 function renderPhone(items, ctx, snap) {
-  setHtml($('#ph-date'), headHtml());
+  setHtml($('#ph-date'), headHtml(ctx.weather));
   setHtml($('#ph-banner'), bannerHtml(items, 'all'));
   setHtml($('#ph-chips'), chipsHtml(snap.people || [], ui.filter));
   setHtml($('#ph-main'), ui.tab === 'todo' ? phoneTodosHtml(items, ui.filter, ctx) : agendaHtml(items, ui.filter, ctx));

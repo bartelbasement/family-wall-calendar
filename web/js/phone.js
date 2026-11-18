@@ -2,6 +2,7 @@
 // switched by a bottom tab bar. No DOM access here.
 import { now, todayYmd, addDays, timeLabel, dayLabel } from './time.js?v=__V__';
 import { esc, bandCode, badges, visible, eventsOn, changeWord } from './render.js?v=__V__';
+import { dayWx, headWx } from './weather.js?v=__V__';
 
 const AGENDA_DAYS = 30; // matches the snapshot window
 
@@ -10,8 +11,9 @@ function openTodos(items, filter) {
     .sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
 }
 
-export function headHtml() {
-  return esc(dayLabel(todayYmd()));
+export function headHtml(weather) {
+  const today = todayYmd();
+  return esc(dayLabel(today)) + headWx(weather, today);
 }
 
 // ---------------------------------------------------------------- agenda
@@ -44,6 +46,7 @@ export function agendaHtml(items, filter, ctx) {
     html += `<section class="ag-day${i === 0 ? ' today' : ''}${off ? ' off' : ''}">
       <h2 class="ag-h"><span class="ag-name">${esc(name)}</span> <span class="ag-date">${esc(date)}</span>
         ${off ? '<span class="ag-off">No school</span>' : ''}
+        <span class="ag-wx">${dayWx(ctx.weather, d)}</span>
         ${icons.length ? `<span class="ag-icons">${icons.map((x) => `<span title="${esc(x.title)}">${esc(x.icon)}</span>`).join('')}</span>` : ''}
       </h2>
       ${evs.map((x) => rowHtml(x, ctx, i === 0 && !x.allDay && Date.parse(x.end || x.start) < tNow)).join('')}
