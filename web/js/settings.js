@@ -7,6 +7,17 @@ import { keepScroll } from './dom.js?v=__V__';
 
 const STYLE_LABELS = { normal: 'Normal', icons: 'Icon in day header', fold: 'One item per day' };
 const IDLE_CHOICES = [1, 2, 3, 5, 10];
+const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MAX_ROUTINES = 10;
+
+/** Routines as the editor holds them: steps as one text block, one per line. */
+const toEditor = (list) => (list || []).map((r) => ({ ...r, stepsText: (r.steps || []).map((x) => x.text).join('\n') }));
+/** ...and back to what the API takes (it assigns ids and validates). */
+const fromEditor = (list) => list.map((r) => ({
+  id: r.id || '', name: r.name, icon: r.icon, person: r.person || null, days: r.days, from: r.from || '', to: r.to || '',
+  steps: String(r.stepsText || '').split('\n').map((x) => x.trim()).filter(Boolean)
+}));
 
 /** Inline colour variables so a row previews its chosen swatch before saving. */
 function swatchVars(name) {
@@ -50,7 +61,7 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
 
   function editHtml() {
     const d = s.data;
-    const tabs = [['calendars', 'Calendars'], ['people', 'People'], ['display', 'Display']];
+    const tabs = [['calendars', 'Calendars'], ['people', 'People'], ['routines', 'Routines'], ['display', 'Display']];
     let body = '';
     if (s.tab === 'calendars') {
       body = `<p class="set-hint">Choose which calendars show on the wall. Events are coloured by name keywords in the title, or by the calendar’s default person.</p>` +
@@ -76,6 +87,27 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
           <div class="swatches">${s.swatches.map((w) => `<button class="sw${p.swatch === w ? ' on' : ''}" data-set-swatch="${i}" data-swatch="${w}" style="background:${SWATCHES[w].l[2]}" aria-label="${w}"></button>`).join('')}</div>
           ${p.code === 'F' ? '' : `<label class="kw">Keywords <input data-set-person="${i}" data-field="keywords" value="${esc(p.keywords.join(', '))}" placeholder="e.g. volleyball, wildcats"></label>`}
         </div>`).join('');
+    } else if (s.tab === 'routines') {
+      const rts = d.routines || [];
+      const swatchOf = (code) => { const p = d.people.find((x) => x.code === code); return p ? p.swatch : 'slate'; };
+      const who = (sel) => `<option value="" ${!sel ? 'selected' : ''}>Whole family</option>` +
+        d.people.filter((p) => p.code !== 'F' && p.code !== 'P').map((p) => `<option value="${p.code}" ${sel === p.code ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
+      body = `<p class="set-hint">Checklists to tick off on the wall’s Routines screen. Ticks reset every day. One step per line; start a step with an emoji if you like. Leave the times empty to show it all day.</p>` +
+        rts.map((r, i) => `<div class="set-row person-row rt-edit" style="${swatchVars(swatchOf(r.person))}">
+          <div class="person-top">
+            <input class="badge-in" data-set-rt="${i}" data-field="icon" value="${esc(r.icon || '')}" maxlength="4" placeholder="⭐" aria-label="Icon">
+            <input class="name-in" data-set-rt="${i}" data-field="name" value="${esc(r.name || '')}" maxlength="30" placeholder="e.g. Morning" aria-label="Routine name">
+            <button class="opt rt-del" data-set-rt-del="${i}" aria-label="Delete routine">🗑</button>
+          </div>
+          <div class="cal-opts">
+            <label>For <select data-set-rt="${i}" data-field="person">${who(r.person)}</select></label>
+            <label>From <input type="time" data-set-rt="${i}" data-field="from" value="${esc(r.from || '')}"></label>
+            <label>to <input type="time" data-set-rt="${i}" data-field="to" value="${esc(r.to || '')}"></label>
+          </div>
+          <div class="opts rt-days">${DAY_LETTERS.map((l, di) => `<button class="opt" data-set-rt-day="${i}" data-day-n="${di}" aria-pressed="${r.days.includes(di)}" aria-label="${DAY_NAMES[di]}">${l}</button>`).join('')}</div>
+          <label class="kw">Steps <textarea data-set-rt="${i}" data-field="stepsText" rows="${Math.min(12, Math.max(3, String(r.stepsText || '').split('\n').length + 1))}" placeholder="🪥 Brush teeth&#10;👕 Get dressed">${esc(r.stepsText || '')}</textarea></label>
+        </div>`).join('') +
+        `<button class="opt rt-add" data-set-rt-add ${rts.length >= MAX_ROUTINES ? 'disabled' : ''}>＋ Add routine</button>`;
     } else {
       const o = d.options;
       body = `<div class="set-row">
@@ -91,7 +123,7 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
     return `<div class="sheet set-sheet" role="dialog" aria-modal="true" aria-label="Settings">
       <button class="close" data-set-close aria-label="Close">✕</button>
       <h3>Settings</h3>
-      <div class="seg seg3">${tabs.map(([k, v]) => `<button class="opt" data-set-tab="${k}" aria-pressed="${s.tab === k}">${v}</button>`).join('')}</div>
+      <div class="seg seg${tabs.length}">${tabs.map(([k, v]) => `<button class="opt" data-set-tab="${k}" aria-pressed="${s.tab === k}">${v}</button>`).join('')}</div>
       <div class="set-body">${body}</div>
       ${s.error ? `<div class="alert-line">${esc(s.error)}</div>` : ''}
       <div class="set-foot">
@@ -117,12 +149,14 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
             { id: 'hol', name: 'Holidays in Canada', color: '#0b8043', include: false, defaultPerson: null, style: 'normal', foldTitle: '' }
           ],
           people: (snap.people || []).map((p) => ({ ...p, swatch: p.swatch || DEFAULTS[p.code] || 'slate', keywords: [] })),
-          options: snap.options || { nightStart: '21:30', nightEnd: '06:30', idleMinutes: 2 }
+          options: snap.options || { nightStart: '21:30', nightEnd: '06:30', idleMinutes: 2 },
+          routines: ((snap.routines && snap.routines.list) || []).map(({ id, name, icon, person, days, from, to, steps }) => ({ id, name, icon, person, days, from, to, steps }))
         }, swatches: Object.keys(SWATCHES) };
       } else {
         res = await apiPost('getSettings', { pin: s.pin });
       }
-      s.data = res.settings; s.swatches = res.swatches; s.stage = 'edit'; s.tab = 'calendars';
+      s.data = res.settings; s.data.routines = toEditor(s.data.routines);
+      s.swatches = res.swatches; s.stage = 'edit'; s.tab = s.wantTab || 'calendars';
     } catch (e) {
       const m = e.message;
       s.stage = 'pin'; s.pin = '';
@@ -140,8 +174,18 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
         const snap = getSnap();
         snap.people = s.data.people.map(({ code, name, badge, swatch }) => ({ code, name, badge, swatch }));
         snap.options = s.data.options;
+        // Demo: rebuild the routines the wall shows, keeping ticks on unchanged steps.
+        const old = {};
+        ((snap.routines && snap.routines.list) || []).forEach((r) => { old[r.id] = r; });
+        snap.routines = { date: snap.routines ? snap.routines.date : '', list: fromEditor(s.data.routines).filter((r) => r.steps.length).map((r, i) => {
+          const id = r.id || 'demo' + Date.now() + i;
+          const was = {};
+          ((old[id] && old[id].steps) || []).forEach((x) => { was[x.text] = x; });
+          return { ...r, id, name: r.name || 'Routine', days: r.days.length ? r.days : [0, 1, 2, 3, 4, 5, 6],
+            steps: r.steps.map((text, j) => ({ id: was[text] ? was[text].id : id + 's' + j, text, done: !!(was[text] && was[text].done) })) };
+        }) };
       } else {
-        await apiPost('saveSettings', { pin: s.pin, settings: s.data });
+        await apiPost('saveSettings', { pin: s.pin, settings: { ...s.data, routines: fromEditor(s.data.routines) } });
       }
       s = null;
       onSaved();
@@ -156,7 +200,8 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
 
   return {
     active: () => !!s,
-    open() { s = { stage: 'pin', pin: '', error: null, data: null, tab: 'calendars', swatches: [] }; draw(); },
+    /** tab: which tab to show after the PIN (e.g. 'routines'); defaults to Calendars. */
+    open(tab) { s = { stage: 'pin', pin: '', error: null, data: null, tab: 'calendars', wantTab: tab || null, swatches: [] }; draw(); },
     close,
     /** Returns true when the click was handled by the settings sheet. */
     handleClick(t) {
@@ -177,6 +222,19 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
       if (tg) { const c = s.data.calendars[+tg.dataset.setCalToggle]; c.include = !c.include; draw(); return true; }
       const sw = t.closest('[data-set-swatch]');
       if (sw) { s.data.people[+sw.dataset.setSwatch].swatch = sw.dataset.swatch; draw(); return true; }
+      const rtAdd = t.closest('[data-set-rt-add]');
+      if (rtAdd) {
+        if (s.data.routines.length < MAX_ROUTINES) s.data.routines.push({ id: '', name: '', icon: '', person: null, days: [0, 1, 2, 3, 4, 5, 6], from: '', to: '', stepsText: '' });
+        draw(); return true;
+      }
+      const rtDel = t.closest('[data-set-rt-del]');
+      if (rtDel) { s.data.routines.splice(+rtDel.dataset.setRtDel, 1); draw(); return true; }
+      const rtDay = t.closest('[data-set-rt-day]');
+      if (rtDay) {
+        const r = s.data.routines[+rtDay.dataset.setRtDay], n = +rtDay.dataset.dayN;
+        r.days = r.days.includes(n) ? r.days.filter((x) => x !== n) : r.days.concat(n).sort();
+        draw(); return true;
+      }
       const idle = t.closest('[data-set-idle]');
       if (idle) { s.data.options.idleMinutes = Number(idle.dataset.setIdle); draw(); return true; }
       if (t.closest('[data-set-save]')) { if (s.stage === 'edit') save(); return true; }
@@ -194,6 +252,8 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
         s.data.calendars[+el.dataset.setCal][el.dataset.field] = el.value;
       } else if (el.dataset.setOpt) {
         s.data.options[el.dataset.setOpt] = el.value;
+      } else if (el.dataset.setRt != null && el.tagName !== 'SELECT') {
+        s.data.routines[+el.dataset.setRt][el.dataset.field] = el.value;
       }
     },
     /** Selects redraw (they can reveal more fields). */
@@ -203,6 +263,9 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
       if (el.dataset.setCal != null && el.tagName === 'SELECT') {
         s.data.calendars[+el.dataset.setCal][el.dataset.field] = el.value || null;
         draw();
+      } else if (el.dataset.setRt != null && el.tagName === 'SELECT') {
+        s.data.routines[+el.dataset.setRt].person = el.value || null;
+        draw(); // the row takes that person's colour
       }
     },
     handleKey(e) {

@@ -55,7 +55,8 @@ var POST_ACTIONS = {
   groceryToggle: function (b) { return groceryWrite_('toggle', b); },
   groceryClear: function (b) { return groceryWrite_('clear', b); },
   getSettings: function (b) { return getSettingsForEditor_(b); },
-  saveSettings: function (b) { return saveSettings_(b); }
+  saveSettings: function (b) { return saveSettings_(b); },
+  routineTick: function (b) { return routineTick_(b); }
 };
 
 function doGet(e) {

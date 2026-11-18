@@ -11,6 +11,7 @@ import { createWeather } from './weather.js?v=__V__';
 import { GROCERY_FORM, groceryListHtml, grocerySheetHtml } from './grocery.js?v=__V__';
 import { railHtml, viewsHtml, menuSheetHtml, peopleHtml, scheduleHtml, todosViewHtml } from './views.js?v=__V__';
 import { keepScroll } from './dom.js?v=__V__';
+import { routinesViewHtml, routinesOnNow, demoRoutines } from './routines.js?v=__V__';
 
 // Night hours and idle time come from settings (snapshot.options), with these defaults.
 const DEFAULT_OPTIONS = { nightStart: '21:30', nightEnd: '06:30', idleMinutes: 2 };
@@ -45,7 +46,7 @@ const ui = {
   status: null,         // refresh status { text, stale, warn } for the phone stamp / wall side panel
   rail: false,          // wall side panel expanded
   tab: 'cal',           // phone layout: 'cal' | 'todo' | 'grocery'
-  view: 'week',         // wall layout: 'week' (home) | 'people' | 'todos' | 'sched'
+  view: 'week',         // wall layout: 'week' (home) | 'people' | 'todos' | 'routines' | 'sched'
   todoMode: 'due'       // wall To-dos view: 'due' (columns by due date) | 'person'
 };
 // Menu style on this screen: 'rail' (side panel, default) or 'classic' (☰ in the
@@ -62,8 +63,8 @@ function setMenuStyle(style) {
   ui.rail = false; ui.sheet = null;
   render();
 }
-const VIEWS = ['week', 'people', 'todos', 'sched'];
-const WALL_VIEWS = ['week', 'people', 'todos']; // views offered on the wall (sched is built but hidden)
+const VIEWS = ['week', 'people', 'todos', 'routines', 'sched'];
+const WALL_VIEWS = ['week', 'people', 'todos', 'routines']; // views offered on the wall (sched is built but hidden)
 try { if (!mode.kiosk) ui.filter = localStorage.getItem('wall-filter') || 'all'; } catch (e) { /* ignore */ }
 try { if (!mode.kiosk) { const v = localStorage.getItem('wall-view'); if (WALL_VIEWS.includes(v)) ui.view = v; } } catch (e) { /* ignore */ }
 try { if (localStorage.getItem('wall-todo-mode') === 'person') ui.todoMode = 'person'; } catch (e) { /* ignore */ }
@@ -268,6 +269,7 @@ function renderWall(items, ctx, snap) {
   // #alt and #now hold their own scrolling lists (people columns, Today), and
   // #now changes every minute with the clock: keep those lists in place.
   if (ui.view === 'people') setKeep($('#alt'), peopleHtml(items, ui.filter, ctx, snap.people || []));
+  else if (ui.view === 'routines') setKeep($('#alt'), routinesViewHtml(routinesData(), ui.filter, snap.people || []));
   else if (ui.view === 'todos') setKeep($('#alt'), todosViewHtml(items, ui.filter, ctx, snap.people || [], ui.todoMode));
   else if (ui.view === 'sched') setKeep($('#alt'), scheduleHtml(items, ui.filter, ctx));
   setKeep($('#now'), nowHtml(items, ui.filter, ctx));
@@ -292,7 +294,7 @@ function renderRail() {
   if (isPhone() || classic()) return;
   const g = groceryItems();
   const todos = ((store.state.snap && store.state.snap.items) || []).filter((x) => x.section === 'todo' && !x.done && !ui.hidden.has(x.id)).length;
-  setHtml($('#rail'), railHtml(ui.view, ui.rail, ui.status || { text: '' }, g ? g.filter((x) => !x.done).length : null, todos));
+  setHtml($('#rail'), railHtml(ui.view, ui.rail, ui.status || { text: '' }, g ? g.filter((x) => !x.done).length : null, todos, routinesOnNow(routinesData())));
   $('#rail').classList.toggle('open', ui.rail);
   $('#app').classList.toggle('rail-open', ui.rail);
 }
@@ -414,11 +416,14 @@ document.addEventListener('click', (e) => {
     if (!inRail) return;
   }
   if (settings.active()) { settings.handleClick(e.target); return; }
-  if (e.target.closest('[data-settings-open]')) { ui.sheet = null; ui.add = null; settings.open(); return; }
+  const so = e.target.closest('[data-settings-open]');
+  if (so) { ui.sheet = null; ui.add = null; settings.open(so.dataset.settingsTab); return; }
   const t = e.target;
   if (t.closest('[data-close]') || t.id === 'scrim') { ui.sheet = null; ui.add = null; render(); return; }
   if (t.closest('[data-add-open]')) { openAdd(); return; }
   if (t.closest('[data-add-todo]')) { openAdd('todo'); return; }
+  const rs = t.closest('[data-routine]');
+  if (rs) { tickRoutine(rs.dataset.routine, rs.dataset.step); return; }
   const tm = t.closest('[data-todo-mode]');
   if (tm) {
     ui.todoMode = tm.dataset.todoMode === 'person' ? 'person' : 'due';
@@ -638,6 +643,42 @@ function undoComplete(id) {
   clearTimeout(ui.pending.get(id));
   ui.pending.delete(id);
   if (ui.toast && ui.toast.id === id) ui.toast = null;
+  render();
+}
+
+// ---------------------------------------------------------------- routines
+/** Today's routines from the snapshot (the demo page gets samples). */
+function routinesData() {
+  const snap = store.state.snap;
+  if (!snap) return null;
+  if (demo && !snap.routines) snap.routines = demoRoutines();
+  return snap.routines || null;
+}
+
+let routineWrites = 0; // ticks in flight: only the last reply may replace local state
+async function tickRoutine(rid, sid) {
+  const R = routinesData();
+  if (!R) return;
+  const today = todayYmdLocal();
+  if (R.date !== today) { R.date = today; R.list.forEach((r) => r.steps.forEach((s) => { s.done = false; })); }
+  const r = R.list.find((x) => x.id === rid);
+  const st = r && r.steps.find((x) => x.id === sid);
+  if (!st) return;
+  const done = !st.done;
+  st.done = done; // optimistic
+  render();
+  if (demo) return;
+  routineWrites++;
+  try {
+    const res = await apiPost('routineTick', { routineId: rid, stepId: sid, done, requestId: crypto.randomUUID() });
+    if (routineWrites === 1 && res.routines && store.state.snap) store.state.snap.routines = res.routines;
+  } catch (e) {
+    st.done = !done;
+    ui.toast = { kind: 'error', text: 'Couldn’t save that tick. Try again in a minute.' };
+    setTimeout(() => { if (ui.toast && ui.toast.kind === 'error') { ui.toast = null; render(); } }, 6000);
+  } finally {
+    routineWrites--;
+  }
   render();
 }
 

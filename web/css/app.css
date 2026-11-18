@@ -306,6 +306,8 @@ button.stamp { min-height: 2.6rem; padding: 0 .8rem; border: 1px solid var(--lin
 .pin-key.ok { background: var(--text); color: var(--bg); font-size: 1.15rem; }
 .pin-key[disabled] { opacity: .35; }
 .seg3 { grid-template-columns: repeat(3, 1fr); }
+.seg4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .35rem; }
+.seg4 .opt { min-width: 0; padding-left: .3rem; padding-right: .3rem; justify-content: center; }
 .set-body { margin-top: .9rem; max-height: 55dvh; overflow-y: auto; display: flex; flex-direction: column; gap: .6rem; padding-right: .2rem; }
 .set-hint { margin: 0 0 .2rem; color: var(--muted); font-size: .95rem; }
 .set-row { border: 1px solid var(--line); border-radius: .8rem; padding: .7rem .8rem; }
@@ -681,3 +683,43 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 .menu-item .mi { display: flex; flex-direction: column; }
 .menu-item small { font-size: .9rem; font-weight: 500; color: var(--muted); }
 .menu-item small.stale { color: var(--stale-tx); font-weight: 700; }
+
+/* ---------- routines (M13) ---------- */
+#app.view-routines .main { grid-template-columns: minmax(0, 1fr); }
+#app.view-routines .now-wrap, #app.view-routines .week-wrap { display: none; }
+#app.view-routines .alt { display: flex; }
+.rv { flex: 1; display: flex; flex-direction: column; gap: .6rem; min-height: 0; min-width: 0; }
+.rv-grid { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .7rem; align-content: start; }
+.rv-grid::-webkit-scrollbar { display: none; }
+.rv-none { color: var(--muted); font-size: 1.2rem; margin: 2rem auto; grid-column: 1 / -1; }
+.rv-off { margin: 0; color: var(--muted); font-size: .95rem; }
+.rv-empty { margin: auto; max-width: 30rem; text-align: center; color: var(--muted); font-size: 1.1rem; display: flex; flex-direction: column; align-items: center; gap: .5rem; }
+.rv-empty .rv-big { font-size: 1.6rem; font-weight: 700; color: var(--text); margin: 0; }
+.rv-empty p { margin: 0; }
+.rv-hint { font-size: .9rem; }
+.rt { display: flex; flex-direction: column; gap: .5rem; background: var(--surface); border-radius: .8rem; border-top: .4rem solid var(--bd-p); padding: .7rem .7rem .8rem; }
+.rt.st-later, .rt.st-earlier { opacity: .6; }
+.rt-h { display: flex; align-items: center; gap: .6rem; }
+.rt-ic { font-size: 1.8rem; line-height: 1; }
+.rt-name { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 1.3rem; font-weight: 700; line-height: 1.15; }
+.rt-name small { font-size: .85rem; font-weight: 600; color: var(--muted); margin-top: .15rem; }
+.rt-name small .badge { font-size: .75rem; }
+.rt-n { font-size: 1.05rem; font-weight: 800; color: var(--tx-p); background: var(--bg-p); border-radius: 1rem; padding: .15rem .6rem; }
+.rt-bar { height: .45rem; border-radius: .3rem; background: var(--line); overflow: hidden; }
+.rt-bar i { display: block; height: 100%; background: var(--bd-p); border-radius: .3rem; transition: width .25s ease-out; }
+.rt-done { margin: 0; text-align: center; font-size: 1.3rem; font-weight: 800; color: var(--tx-p); background: var(--bg-p); border-radius: .6rem; padding: .4rem; }
+.rt-steps { display: flex; flex-direction: column; gap: .4rem; }
+.rt-step { display: flex; align-items: center; gap: .7rem; min-height: 3.3rem; padding: .4rem .7rem; border-radius: .7rem; background: var(--bg-p); color: var(--tx-p); font-size: 1.2rem; font-weight: 600; text-align: left; }
+.rt-box { flex: none; width: 2rem; height: 2rem; border-radius: 50%; border: .18rem solid var(--bd-p); display: grid; place-items: center; font-weight: 900; font-size: 1.1rem; }
+.rt-tx { min-width: 0; overflow-wrap: anywhere; }
+.rt-step.done { background: transparent; opacity: .6; }
+.rt-step.done .rt-box { background: var(--bd-p); color: #fff; }
+.rt-step.done .rt-tx { text-decoration: line-through; }
+/* settings: routines tab */
+.rt-edit .person-top { align-items: center; }
+.rt-edit .name-in { flex: 1; min-width: 0; width: auto; }
+.rt-del { flex: none; width: 3rem; padding: 0; }
+.rt-days { display: flex; gap: .3rem; flex-wrap: wrap; }
+.rt-days .opt { width: 2.6rem; height: 2.6rem; padding: 0; justify-content: center; }
+.rt-edit textarea { display: block; width: 100%; box-sizing: border-box; margin-top: .3rem; font: inherit; font-size: 1.05rem; padding: .5rem .6rem; border-radius: .6rem; border: 1px solid var(--line); background: var(--bg); color: var(--text); resize: vertical; }
+.rt-add { align-self: flex-start; }

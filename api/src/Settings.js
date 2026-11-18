@@ -4,6 +4,7 @@
  *   calendars: which calendars show, default person, display style
  *   people:    name, badge, colour swatch, keywords (Trello labels stay in Private.js)
  *   options:   night hours, idle minutes
+ *   routines:  stored separately in ROUTINES_V1 (see Routines.js), edited here too
  * Reads and writes require the parent PIN (Script Property SETTINGS_PIN).
  */
 
@@ -82,7 +83,7 @@ function getSettingsForEditor_(body) {
     return { code: p.code, name: p.name, badge: p.badge || p.code, swatch: p.swatch || DEFAULT_SWATCH_[p.code] || 'slate',
       keywords: p.keywords || [] };
   });
-  return { ok: true, settings: { calendars: calendars, people: people, options: cfg.options }, swatches: SWATCHES_ };
+  return { ok: true, settings: { calendars: calendars, people: people, options: cfg.options, routines: readRoutines_() }, swatches: SWATCHES_ };
 }
 
 function cleanText_(s, max) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, max); }
@@ -125,6 +126,7 @@ function saveSettings_(body) {
   var settings = { version: 1, savedAt: new Date().toISOString(), calendars: calendars, people: people, options: options };
   var json = JSON.stringify(settings);
   if (json.length > 9000) throw new Error('settings too large');
+  if (Array.isArray(input.routines)) saveRoutines_(input.routines, cfg); // validated first: a bad list saves nothing
   PropertiesService.getScriptProperties().setProperty(SETTINGS_PROP_, json);
 
   var cache = CacheService.getScriptCache();

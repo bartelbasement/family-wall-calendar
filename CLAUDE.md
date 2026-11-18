@@ -7,8 +7,8 @@ the handoff file, or anything under `web/demo/`. Deploy steps are in README.md.
 
 - The wall's bottom bar (to-do strip, people chips, ＋ Add) looks identical in
   every view. Don't move controls in or out of it per view.
-- Views and secondary features (Calendar, People, Grocery, later To-dos and
-  Routines, plus Refresh and Settings) go in the side panel (`#rail`) on the
+- Views and secondary features (Calendar, People, To-dos, Routines, Grocery,
+  plus Refresh and Settings) go in the side panel (`#rail`) on the
   right edge, not as new bottom-bar buttons. The right side keeps a clean left
   edge for the clock. It's a narrow icon strip; tapping the app icon expands
   it leftward over the page. Labels are right-aligned, next to their icons.

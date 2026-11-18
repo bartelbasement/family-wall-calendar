@@ -43,8 +43,9 @@ export function menuSheetHtml(st) {
  * (The schedule view is built but not offered on the wall.)
  * @param gro open grocery count, or null when groceries aren't set up
  * @param todos open to-do count (all people)
+ * @param rtn routines on right now and not finished
  */
-export function railHtml(view, open, st, gro, todos) {
+export function railHtml(view, open, st, gro, todos, rtn) {
   const btn = (attrs, ic, label, sub, cls = '', badge = '') =>
     `<button class="rail-btn${cls}" ${attrs} aria-label="${label}" title="${label}"><span class="ic">${ic}${badge}</span>` +
     `<span class="rl">${label}${sub ? `<small>${sub}</small>` : ''}</span></button>`;
@@ -55,6 +56,7 @@ export function railHtml(view, open, st, gro, todos) {
       ${nav('week', '▦', 'Calendar')}
       ${nav('people', '👥', 'People')}
       ${nav('todos', '☑', 'To-dos', todos ? todos + ' open' : 'All done', todos ? `<b class="rail-count">${todos}</b>` : '')}
+      ${nav('routines', '⭐', 'Routines', rtn ? rtn + ' on now' : 'Nothing on now', rtn ? `<b class="rail-count">${rtn}</b>` : '')}
       ${gro == null ? '' : btn('data-grocery-open', '🛒', 'Grocery', gro ? gro + ' to get' : 'All done', '', gro ? `<b class="rail-count">${gro}</b>` : '')}
     </div>
     <div class="rail-foot">

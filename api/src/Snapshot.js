@@ -45,6 +45,8 @@ function buildSnapshot() {
       var prev = readSnapshot_();
       grocery = prev ? prev.grocery || null : null; // keep the last good list
     }
+    var routines = null;
+    try { routines = routinesForSnapshot_(); } catch (e) { console.warn('routines read failed: ' + e); }
     writeSnapshot_({
       version: 1,
       updatedAt: now.toISOString(),
@@ -59,6 +61,7 @@ function buildSnapshot() {
       options: cfg.options,
       weatherAt: weatherLocation_(cfg), // clients fetch the forecast (see Weather.js)
       grocery: grocery,
+      routines: routines,
       items: r.items
     });
     props.setProperty('SNAP_LAST_OK', now.toISOString());
