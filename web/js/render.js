@@ -6,7 +6,6 @@ const KIDS = ['S', 'R', 'C'];
 const ADULTS = ['M', 'D', 'P'];
 const WEEK_PILLS = 6;
 export const WEEK_DAYS = 14; // rendered; 4 visible at a time, swipe for more
-const NOW_ITEMS = 4;
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -65,11 +64,11 @@ export function nowHtml(items, filter, ctx) {
   const timed = evs.filter((x) => !x.allDay);
   // Keep an event while it is running: until its end, or 1 h after start if no end.
   const live = timed.filter((x) => Date.parse(x.end || x.start) + (x.end ? 0 : 3600e3) > t.getTime());
-  const shown = live.slice(0, NOW_ITEMS);
+  const shown = live; // all of them: the list scrolls when they don't fit
   const nextIdx = shown.findIndex((x) => Date.parse(x.start) > t.getTime());
 
-  let html = `<div class="now-top"><div class="clock">${clockLabel(t)}<span class="ampm">${p.h < 12 ? 'am' : 'pm'}</span></div>${nowWx(ctx.weather, today)}</div>
-    <div class="date">${esc(longDateLabel(today))}</div>`;
+  let html = `<div class="clock">${clockLabel(t)}<span class="ampm">${p.h < 12 ? 'am' : 'pm'}</span></div>
+    <div class="date">${esc(longDateLabel(today))}</div>${nowWx(ctx.weather, today)}`;
   const icons = items.filter((x) => x.display === 'icon' && x.date === today);
   if (allDay.length || icons.length) {
     html += `<div class="allday-today">${icons.map((x) =>
@@ -87,7 +86,6 @@ export function nowHtml(items, filter, ctx) {
         ${sub ? `<span class="sub">${esc(sub)}</span>` : ''}
       </button>`;
     }).join('') + `</div>`;
-    if (live.length > shown.length) html += `<div class="now-more">Later today: +${live.length - shown.length} more</div>`;
   } else {
     // Nothing left today: preview the next day with events.
     html += `<div class="now-h">Today</div><div class="now-empty">Nothing else today.</div>`;

@@ -13,12 +13,11 @@ function dayName(d, today) {
   return dayLabel(d);
 }
 
-/** One toggle in the wall's bottom bar: Week <-> People. (The schedule view is
- *  built but not offered on the wall; scheduleHtml stays for later use.) */
+/** Segmented Week | People switch for the wall's bottom bar. (The schedule view
+ *  is built but not offered on the wall; scheduleHtml stays for later use.) */
 export function viewsHtml(view) {
-  return view === 'people'
-    ? `<button class="view-btn" data-view="week" title="Back to the week"><span>▦</span><span class="vl">Week</span></button>`
-    : `<button class="view-btn" data-view="people" title="One column per person"><span>👥</span><span class="vl">People</span></button>`;
+  const b = (v, ic, label) => `<button class="view-btn" data-view="${v}" aria-pressed="${view === v}" title="${label}"><span>${ic}</span><span class="vl">${label}</span></button>`;
+  return b('week', '▦', 'Week') + b('people', '👥', 'People');
 }
 
 // ---------------------------------------------------------------- people columns

@@ -212,6 +212,19 @@ function handleGroceryClick(t) {
   return false;
 }
 
+/** Today's weather gets its own line while the events fit; when they don't,
+ *  it moves beside the clock (.wx-side), and the list scrolls if still short. */
+function fitNow() {
+  const n = $('#now'), list = n.querySelector('.now-list');
+  n.classList.remove('wx-side');
+  if (!list) return;
+  const over = () => list.scrollHeight > list.clientHeight + 1;
+  if (n.querySelector('.wx-now') && over()) n.classList.add('wx-side');
+  const fade = () => list.classList.toggle('scrolls', list.scrollTop + list.clientHeight < list.scrollHeight - 2);
+  fade();
+  list.onscroll = fade;
+}
+
 function renderWall(items, ctx, snap) {
   setHtml($('#banner'), bannerHtml(items, 'all')); // alerts matter to everyone: ignore the filter
   const app = $('#app');
@@ -224,6 +237,7 @@ function renderWall(items, ctx, snap) {
   if (ui.view === 'people') setHtml($('#alt'), peopleHtml(items, ui.filter, ctx, snap.people || []));
   else if (ui.view === 'sched') setHtml($('#alt'), scheduleHtml(items, ui.filter, ctx));
   setHtml($('#now'), nowHtml(items, ui.filter, ctx));
+  fitNow();
   // Scroll strips are only rebuilt when their content changes: rewriting them
   // every minute interrupts swipes and leaves iPad Safari with unpainted cards.
   setStrip($('#week'), weekHtml(items, ui.filter, ctx));
@@ -536,11 +550,12 @@ async function commitComplete(id) {
 // Wall: drift back to the home state when nobody is using it.
 if (mode.kiosk) {
   setInterval(() => {
-    if (Date.now() - ui.lastTouch > idleMs() && (ui.sheet || settings.active() || ui.filter !== 'all' || ui.view !== 'week' || $('#week').scrollLeft > 4 || $('#todos').scrollLeft > 4)) {
+    if (Date.now() - ui.lastTouch > idleMs() && (ui.sheet || settings.active() || ui.filter !== 'all' || ui.view !== 'week' || ($('.now-list') && $('.now-list').scrollTop > 4) || $('#week').scrollLeft > 4 || $('#todos').scrollLeft > 4)) {
       if (settings.active()) settings.close();
       ui.sheet = null; ui.add = null; ui.filter = 'all'; ui.view = 'week'; render();
       ui.lastTouch = Date.now(); // reset once per idle spell, never in a loop
       $('#week').scrollTo({ left: 0, behavior: 'smooth' });
+      if ($('.now-list')) $('.now-list').scrollTo({ top: 0, behavior: 'smooth' });
       $('#todos').scrollTo({ left: 0, behavior: 'smooth' });
     }
   }, 10e3);

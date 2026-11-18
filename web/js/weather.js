@@ -100,14 +100,15 @@ export function nowWx(weather, ymd) {
   if (!cur && !d) return '';
   const [dayIcon, nightIcon, label] = lookup(cur ? cur.code : d.code);
   const icon = cur && !cur.isDay ? nightIcon : dayIcon;
-  // Sits beside the clock (bottom-aligned, under the corner buttons):
-  // icon + temp, then the description and high/low on two small lines.
-  const sub = [];
-  if (d) sub.push(`${deg(d.hi)}/${deg(d.lo)}`);
-  if (d && d.pop != null && d.pop >= 20) sub.push(`💧${d.pop}%`);
+  // Own line under the date; the wall moves it beside the clock (class
+  // .wx-side on #now) when Today's events need the room. Both detail lines are
+  // rendered and CSS shows the one that suits the spot.
+  const big = [], small = [];
+  if (d) { big.push(`H ${deg(d.hi)} · L ${deg(d.lo)}`); small.push(`${deg(d.hi)}/${deg(d.lo)}`); }
+  if (d && d.pop != null && d.pop >= 20) { big.push(`${d.pop}% rain`); small.push(`💧${d.pop}%`); }
   return `<div class="wx-now" title="${esc(weather.place)}">
     <span class="wx-ic">${icon}</span>${cur ? `<span class="wx-t">${deg(cur.temp)}</span>` : ''}
-    <span class="wx-d"><span>${esc(label)}</span>${sub.length ? `<span>${esc(sub.join(' '))}</span>` : ''}</span></div>`;
+    <span class="wx-d"><span>${esc(label)}</span>${big.length ? `<span class="wx-big">${esc(big.join(' · '))}</span><span class="wx-small">${esc(small.join(' '))}</span>` : ''}</span></div>`;
 }
 
 /** Phone header: "🌧️ 7°". */
