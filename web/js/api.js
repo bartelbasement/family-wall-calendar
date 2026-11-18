@@ -32,7 +32,8 @@ export async function apiPost(action, body = {}) {
   const res = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ ...body, action, key, requestId: crypto.randomUUID() }),
+    // A caller-supplied requestId makes retries idempotent on the server.
+    body: JSON.stringify({ ...body, action, key, requestId: body.requestId || crypto.randomUUID() }),
     redirect: 'follow'
   });
   if (!res.ok) throw new Error(`http_${res.status}`);

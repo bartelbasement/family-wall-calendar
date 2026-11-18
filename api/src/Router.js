@@ -39,7 +39,9 @@ var GET_ACTIONS = {
 };
 
 var POST_ACTIONS = {
-  completeTodo: function (b) { return completeTodo_(b); }
+  completeTodo: function (b) { return completeTodo_(b); },
+  addEvent: function (b) { return addEvent_(b); },
+  addTodo: function (b) { return addTodo_(b); }
 };
 
 function doGet(e) {

@@ -211,6 +211,7 @@ export function daySheetHtml(items, day, filter, ctx) {
 export function toastHtml(t) {
   if (!t) return '';
   if (t.kind === 'error') return `<div class="toast err" role="alert">${esc(t.text)}</div>`;
+  if (t.kind === 'ok') return `<div class="toast" role="status"><span>✓ ${esc(t.text)}</span></div>`;
   return `<div class="toast" role="status">
     <span>✓ ${esc(t.text)}</span>
     <button class="undo" data-undo="${esc(t.id)}">Undo</button>
@@ -234,3 +235,58 @@ export function nightHtml(items) {
 }
 
 export { ymd };
+
+// ---------------------------------------------------------------- quick add
+const PRESET_TIMES = [
+  { t: null, label: 'All day' },
+  { t: '09:00', label: 'Morning 9:00' },
+  { t: '15:30', label: 'After school 3:30' },
+  { t: '18:30', label: 'Evening 6:30' }
+];
+
+/** Quick-add form. `f` = ui.add state; `people` = snapshot people list. */
+export function addSheetHtml(f, people) {
+  const today = todayYmd();
+  const days = [{ d: today, label: 'Today' }, { d: addDays(today, 1), label: 'Tomorrow' }];
+  for (let i = 2; i <= 6; i++) { const d = addDays(today, i); days.push({ d, label: dayLabel(d).replace(/ \w+ /, ' ') }); }
+  const isEvent = f.type === 'event';
+  const dayKnown = !f.date || days.some((x) => x.d === f.date);
+  const who = people.filter((p) => p.code !== 'P' || !isEvent);
+  const sel = (on) => `aria-pressed="${on ? 'true' : 'false'}"`;
+  const timeKnown = PRESET_TIMES.some((x) => x.t === f.time);
+  const canSave = f.title.trim() && (!isEvent || f.date) && !f.saving;
+
+  return `<div class="sheet add-sheet" role="dialog" aria-modal="true" aria-label="Add">
+    <button class="close" data-close aria-label="Close">✕</button>
+    <h3>Add</h3>
+    <div class="seg">
+      <button class="opt" data-add-type="event" ${sel(isEvent)}>📅 Event</button>
+      <button class="opt" data-add-type="todo" ${sel(!isEvent)}>☐ To-do</button>
+    </div>
+
+    <div class="add-h">Who</div>
+    <div class="opts">${who.map((p) => `<button class="opt who-opt" data-add-person="${p.code}" ${sel(f.people.includes(p.code))}>
+      <span class="badge p-${['M', 'D', 'P'].includes(p.code) ? 'A' : p.code}">${esc(p.badge || p.code)}</span>${esc(p.name)}</button>`).join('')}</div>
+
+    <div class="add-h">${isEvent ? 'Day' : 'Due'}</div>
+    <div class="opts">
+      ${isEvent ? '' : `<button class="opt" data-add-day="" ${sel(!f.date)}>No date</button>`}
+      ${days.map((x) => `<button class="opt" data-add-day="${x.d}" ${sel(f.date === x.d)}>${esc(x.label)}</button>`).join('')}
+      <label class="opt picker ${!dayKnown ? 'on' : ''}">📆 Other <input type="date" id="add-date" value="${!dayKnown ? f.date : ''}" min="${today}"></label>
+    </div>
+
+    ${isEvent ? `<div class="add-h">Time</div>
+    <div class="opts">
+      ${PRESET_TIMES.map((x) => `<button class="opt" data-add-time="${x.t || ''}" ${sel(f.time === x.t)}>${esc(x.label)}</button>`).join('')}
+      <label class="opt picker ${!timeKnown ? 'on' : ''}">🕑 Other <input type="time" id="add-time" value="${!timeKnown && f.time ? f.time : ''}" step="300"></label>
+    </div>` : ''}
+
+    <div class="add-h">What</div>
+    <input id="add-title" class="add-title" type="text" maxlength="120" autocomplete="off" enterkeyhint="done"
+      placeholder="${isEvent ? 'e.g. Pizza night' : 'e.g. Bring gym strip'}  (tap 🎤 on the keyboard to talk)" value="${esc(f.title)}">
+
+    ${f.error ? `<div class="alert-line" style="margin-top:.8rem">${esc(f.error)}</div>` : ''}
+    <button class="done-btn" data-add-submit ${canSave ? '' : 'disabled'}>${f.saving ? 'Adding…' : isEvent ? 'Add event' : 'Add to-do'}</button>
+    <div class="src">${isEvent ? 'Goes to the family Google Calendar' : 'Goes to the Kids’ School Trello board (To Do)'}</div>
+  </div>`;
+}

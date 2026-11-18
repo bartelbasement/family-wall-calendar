@@ -3,7 +3,7 @@ import { createStore } from './store.js?v=__V__';
 import { getMode } from './mode.js?v=__V__';
 import { startKiosk } from './kiosk.js?v=__V__';
 import { calibrate, clockLabel, setNow, now, parts } from './time.js?v=__V__';
-import { bannerHtml, nowHtml, weekHtml, todosHtml, chipsHtml, itemSheetHtml, daySheetHtml, nightHtml, toastHtml } from './render.js?v=__V__';
+import { bannerHtml, nowHtml, weekHtml, todosHtml, chipsHtml, itemSheetHtml, daySheetHtml, nightHtml, toastHtml, addSheetHtml } from './render.js?v=__V__';
 
 const IDLE_MS = 2 * 60 * 1000;        // wall: return home after 2 min without a touch
 const NIGHT = { start: 21 * 60 + 30, end: 6 * 60 + 30 }; // 9:30 pm – 6:30 am (settings later)
@@ -29,7 +29,8 @@ const ui = {
   lastTouch: Date.now(),
   pending: new Map(),   // to-do id -> undo timer (ticked, not yet sent)
   hidden: new Set(),    // to-do ids completed in Trello; hidden until the snapshot drops them
-  toast: null
+  toast: null,
+  add: null             // quick-add form state while the Add sheet is open
 };
 try { if (!mode.kiosk) ui.filter = localStorage.getItem('wall-filter') || 'all'; } catch (e) { /* ignore */ }
 
@@ -108,7 +109,11 @@ function renderSheet(items, ctx) {
   const scrim = $('#scrim');
   if (!ui.sheet) { scrim.hidden = true; scrim.innerHTML = ''; return; }
   let html = '';
-  if (ui.sheet.type === 'item') {
+  if (ui.sheet.type === 'add') {
+    // Never rebuild the form on background refreshes: it would wipe what is being typed.
+    if (scrim.querySelector('.add-sheet')) return;
+    html = addSheetHtml(ui.add, (store.state.snap && store.state.snap.people) || []);
+  } else if (ui.sheet.type === 'item') {
     const x = items.find((i) => i.id === ui.sheet.id);
     if (!x) { ui.sheet = null; scrim.hidden = true; return; }
     html = itemSheetHtml(x, ctx, mode.kiosk);
@@ -146,7 +151,9 @@ document.addEventListener('pointerdown', () => { ui.lastTouch = Date.now(); }, {
 document.addEventListener('click', (e) => {
   if (!$('#night').hidden) { ui.wokeAt = Date.now(); render(); return; }
   const t = e.target;
-  if (t.closest('[data-close]') || t.id === 'scrim') { ui.sheet = null; render(); return; }
+  if (t.closest('[data-close]') || t.id === 'scrim') { ui.sheet = null; ui.add = null; render(); return; }
+  if (t.closest('[data-add-open]')) { openAdd(); return; }
+  if (ui.sheet && ui.sheet.type === 'add' && handleAddClick(t)) return;
   const u = t.closest('[data-undo]');
   if (u) { undoComplete(u.dataset.undo); return; }
   const c = t.closest('[data-complete]');
@@ -163,7 +170,97 @@ document.addEventListener('click', (e) => {
   if (day) { ui.sheet = { type: 'day', day: day.dataset.day }; render(); }
 });
 
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ui.sheet) { ui.sheet = null; render(); } });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && ui.sheet) { ui.sheet = null; ui.add = null; render(); }
+  if (e.key === 'Enter' && e.target.id === 'add-title') { e.preventDefault(); submitAdd(); }
+});
+
+// ---------------------------------------------------------------- quick add
+function openAdd() {
+  const filterPerson = ui.filter !== 'all' ? [ui.filter] : [];
+  ui.add = { type: 'event', people: filterPerson, date: todayYmdLocal(), time: null, title: '',
+    saving: false, error: null, requestId: crypto.randomUUID() };
+  ui.sheet = { type: 'add' };
+  drawAdd();
+  render();
+}
+function todayYmdLocal() { const p = parts(now()); return `${p.y}-${String(p.mo).padStart(2, '0')}-${String(p.d).padStart(2, '0')}`; }
+
+/** Redraws the add form, keeping focus/caret in the title box if it had it. */
+function drawAdd() {
+  const scrim = $('#scrim');
+  const hadFocus = document.activeElement && document.activeElement.id === 'add-title';
+  scrim.innerHTML = addSheetHtml(ui.add, (store.state.snap && store.state.snap.people) || []);
+  scrim.hidden = false;
+  if (hadFocus) { const i = $('#add-title'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+}
+
+function handleAddClick(t) {
+  const f = ui.add;
+  if (!f || f.saving) return !!f;
+  const typ = t.closest('[data-add-type]');
+  if (typ) {
+    f.type = typ.dataset.addType;
+    if (f.type === 'event' && !f.date) f.date = todayYmdLocal();
+    if (f.type === 'event') f.people = f.people.filter((p) => p !== 'P');
+    drawAdd(); return true;
+  }
+  const per = t.closest('[data-add-person]');
+  if (per) {
+    const p = per.dataset.addPerson;
+    f.people = f.people.includes(p) ? f.people.filter((x) => x !== p) : f.people.concat(p);
+    drawAdd(); return true;
+  }
+  const day = t.closest('[data-add-day]');
+  if (day) { f.date = day.dataset.addDay || null; drawAdd(); return true; }
+  const tm = t.closest('[data-add-time]');
+  if (tm) { f.time = tm.dataset.addTime || null; drawAdd(); return true; }
+  if (t.closest('[data-add-submit]')) { submitAdd(); return true; }
+  return !!t.closest('.add-sheet'); // swallow other taps inside the form
+}
+
+document.addEventListener('input', (e) => {
+  if (!ui.add) return;
+  if (e.target.id === 'add-title') {
+    ui.add.title = e.target.value;
+    const b = document.querySelector('[data-add-submit]');
+    if (b) b.disabled = !(ui.add.title.trim() && (ui.add.type !== 'event' || ui.add.date));
+  }
+});
+document.addEventListener('change', (e) => {
+  if (!ui.add) return;
+  if (e.target.id === 'add-date' && e.target.value) { ui.add.date = e.target.value; drawAdd(); }
+  if (e.target.id === 'add-time' && e.target.value) { ui.add.time = e.target.value; drawAdd(); }
+});
+
+async function submitAdd() {
+  const f = ui.add;
+  if (!f || f.saving || !f.title.trim() || (f.type === 'event' && !f.date)) return;
+  f.saving = true; f.error = null; drawAdd();
+  const body = { title: f.title.trim(), people: f.people, date: f.date, time: f.type === 'event' ? f.time : null, requestId: f.requestId };
+  try {
+    let item;
+    if (demo) {
+      await new Promise((r) => setTimeout(r, 500));
+      item = { id: 'demo-' + f.requestId, source: f.type === 'event' ? 'calendar' : 'trello', section: f.type === 'event' ? 'event' : 'todo',
+        title: body.title, people: body.people.length ? body.people : ['F'], date: body.date, endDate: body.date,
+        allDay: f.type === 'event' && !body.time, start: body.time ? `${body.date}T${body.time}:00-07:00` : null,
+        change: f.type === 'todo' ? 'new' : null, trelloId: f.type === 'todo' ? 'demo' : null };
+    } else {
+      item = (await apiPost(f.type === 'event' ? 'addEvent' : 'addTodo', body)).item;
+    }
+    const snap = store.state.snap;
+    if (item && snap && !snap.items.some((x) => x.id === item.id)) snap.items.push(item);
+    ui.sheet = null; ui.add = null;
+    ui.toast = { kind: 'ok', text: (f.type === 'event' ? 'Added to the calendar: ' : 'Added to-do: ') + body.title };
+    setTimeout(() => { if (ui.toast && ui.toast.kind === 'ok') { ui.toast = null; render(); } }, 4000);
+    render();
+  } catch (err) {
+    f.saving = false;
+    f.error = 'Couldn’t add that (' + (err.message || 'error') + '). Check the connection and try again.';
+    drawAdd();
+  }
+}
 
 // ---------------------------------------------------------------- to-do completion
 function todoById(id) { return ((store.state.snap && store.state.snap.items) || []).find((x) => x.id === id); }

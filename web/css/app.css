@@ -260,3 +260,25 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .todos-wrap.at-end::after { content: none; }
 .todos { padding-right: 2.5rem; scroll-snap-type: x proximity; }
 .todo { scroll-snap-align: start; }
+
+/* quick add */
+.side-r { display: flex; align-items: center; gap: .8rem; }
+.add-btn { height: 3.1rem; padding: 0 1.3rem; border-radius: 1.6rem; background: var(--text); color: var(--bg); font-weight: 800; font-size: 1.05rem; }
+.add-sheet { width: min(46rem, 100%); }
+.add-h { font-size: .85rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 1rem 0 .45rem; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.opts { display: flex; flex-wrap: wrap; gap: .45rem; }
+.opt {
+  min-height: 3rem; padding: 0 1rem; border-radius: .8rem; border: 1px solid var(--line); background: var(--bg);
+  display: inline-flex; align-items: center; justify-content: center; gap: .4rem; font-weight: 600; font-size: 1.02rem;
+}
+.opt[aria-pressed="true"], .opt.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+.opt.picker { position: relative; cursor: pointer; }
+.opt.picker input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+.add-title {
+  width: 100%; font: inherit; font-size: 1.3rem; padding: .8rem 1rem; border-radius: .8rem; border: 2px solid var(--line);
+  background: var(--bg); color: var(--text); -webkit-user-select: text; user-select: text;
+}
+.add-title:focus { outline: none; border-color: var(--text); }
+.done-btn[disabled] { opacity: .4; }
+.add-sheet .done-btn { background: var(--text); color: var(--bg); }
