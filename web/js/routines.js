@@ -108,3 +108,18 @@ export function demoRoutines() {
     ]
   };
 }
+
+/** Sample packing lists for the demo page. Demo lists keep their items so Settings can edit them. */
+export function demoPacking() {
+  const l = (id, name, icon, person, texts) => ({ id, name, icon, person, count: texts.length,
+    items: texts.map((text, i) => ({ id: id + 'i' + i, text })) });
+  return {
+    lists: [
+      l('pswim', 'Swim bag', '🏊', 'S', ['🩱 Swimsuit', '🥽 Goggles', '🧴 Towel', '🧢 Swim cap', '🩴 Flip-flops']),
+      l('pcamp', 'Camping', '⛺', null, ['🛏️ Sleeping bag', '🧸 Pillow', '🔦 Flashlight', '🧥 Warm jacket', '👖 Pants ×2', '👕 Shirts ×3',
+        '🧦 Socks ×4', '🩲 Underwear ×4', '🩱 Swimsuit', '🧴 Towel', '🪥 Toothbrush', '🧢 Hat', '🥾 Hiking shoes', '🩴 Sandals', '🌧️ Rain coat']),
+      l('pgran', 'Grandma’s', '🧳', null, ['🧸 Pyjamas', '🪥 Toothbrush', '👕 Clothes for 2 days', '📚 Book', '🎮 Game'])
+    ],
+    trips: []
+  };
+}

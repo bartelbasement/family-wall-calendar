@@ -10,6 +10,16 @@ const IDLE_CHOICES = [1, 2, 3, 5, 10];
 const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MAX_ROUTINES = 10;
+const MAX_PACK_LISTS = 20;
+const MAX_PACK_ITEMS = 40;
+
+/** Saved packing lists, same idea: items as one text block. */
+const packToEditor = (list) => (list || []).map((l) => ({ ...l, itemsText: (l.items || []).map((x) => x.text).join('\n') }));
+const packFromEditor = (list) => list.map((l) => ({
+  id: l.id || '', name: l.name, icon: l.icon, person: l.person || null,
+  items: String(l.itemsText || '').split('\n').map((x) => x.trim()).filter(Boolean)
+}));
+const lineCount = (text) => String(text || '').split('\n').filter((x) => x.trim()).length;
 
 /** Routines as the editor holds them: steps as one text block, one per line. */
 const toEditor = (list) => (list || []).map((r) => ({ ...r, stepsText: (r.steps || []).map((x) => x.text).join('\n') }));
@@ -108,6 +118,27 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
           <label class="kw">Steps <textarea data-set-rt="${i}" data-field="stepsText" rows="${Math.min(12, Math.max(3, String(r.stepsText || '').split('\n').length + 1))}" placeholder="🪥 Brush teeth&#10;👕 Get dressed">${esc(r.stepsText || '')}</textarea></label>
         </div>`).join('') +
         `<button class="opt rt-add" data-set-rt-add ${rts.length >= MAX_ROUTINES ? 'disabled' : ''}>＋ Add routine</button>`;
+      if (d.packing) {
+        const pks = d.packing;
+        body += `<h4 class="set-sub">🎒 Packing lists</h4>
+          <p class="set-hint">Lists the kids can start from the Routines screen when it’s time to pack (swim bag, camping, Grandma’s). Ticks stay until they tap Done. Kids can’t change the items. One item per line, up to ${MAX_PACK_ITEMS}.</p>` +
+          pks.map((l, i) => {
+            const n = lineCount(l.itemsText);
+            return `<div class="set-row person-row rt-edit" style="${swatchVars(swatchOf(l.person))}">
+            <div class="person-top">
+              <input class="badge-in" data-set-pk="${i}" data-field="icon" value="${esc(l.icon || '')}" maxlength="4" placeholder="🎒" aria-label="Icon">
+              <input class="name-in" data-set-pk="${i}" data-field="name" value="${esc(l.name || '')}" maxlength="30" placeholder="e.g. Swim bag" aria-label="Packing list name">
+              <button class="opt rt-del" data-set-pk-del="${i}" aria-label="Delete packing list">🗑</button>
+            </div>
+            <div class="cal-opts">
+              <label>Usually for <select data-set-pk="${i}" data-field="person">${who(l.person).replace('Whole family', 'Anyone (pick when starting)')}</select></label>
+            </div>
+            <label class="kw">Items <span class="pk-n${n > MAX_PACK_ITEMS ? ' over' : ''}" data-pk-n="${i}">${n}/${MAX_PACK_ITEMS}</span>
+              <textarea data-set-pk="${i}" data-field="itemsText" rows="${Math.min(14, Math.max(4, String(l.itemsText || '').split('\n').length + 1))}" placeholder="🩱 Swimsuit&#10;🏊 Goggles&#10;🧴 Towel">${esc(l.itemsText || '')}</textarea></label>
+          </div>`;
+          }).join('') +
+          `<button class="opt rt-add" data-set-pk-add ${pks.length >= MAX_PACK_LISTS ? 'disabled' : ''}>＋ Add packing list</button>`;
+      }
     } else {
       const o = d.options;
       body = `<div class="set-row">
@@ -150,12 +181,17 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
           ],
           people: (snap.people || []).map((p) => ({ ...p, swatch: p.swatch || DEFAULTS[p.code] || 'slate', keywords: [] })),
           options: snap.options || { nightStart: '21:30', nightEnd: '06:30', idleMinutes: 2 },
-          routines: ((snap.routines && snap.routines.list) || []).map(({ id, name, icon, person, days, from, to, steps }) => ({ id, name, icon, person, days, from, to, steps }))
+          routines: ((snap.routines && snap.routines.list) || []).map(({ id, name, icon, person, days, from, to, steps }) => ({ id, name, icon, person, days, from, to, steps })),
+          // Demo snapshot lists keep their items (the real snapshot only has counts).
+          packing: ((snap.packing && snap.packing.lists) || []).map(({ id, name, icon, person, items }) => ({ id, name, icon, person, items: items || [] }))
         }, swatches: Object.keys(SWATCHES) };
       } else {
         res = await apiPost('getSettings', { pin: s.pin });
       }
       s.data = res.settings; s.data.routines = toEditor(s.data.routines);
+      // null (an API without packing lists) hides the section and is never saved,
+      // so an older API can't be told to wipe the lists.
+      s.data.packing = Array.isArray(s.data.packing) ? packToEditor(s.data.packing) : null;
       s.swatches = res.swatches; s.stage = 'edit'; s.tab = s.wantTab || 'calendars';
     } catch (e) {
       const m = e.message;
@@ -167,6 +203,12 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
   }
 
   async function save() {
+    const long = (s.data.packing || []).find((l) => lineCount(l.itemsText) > MAX_PACK_ITEMS);
+    if (long) {
+      s.tab = 'routines';
+      s.error = `“${long.name || 'A packing list'}” has more than ${MAX_PACK_ITEMS} items. Shorten it or split it in two.`;
+      draw(); return;
+    }
     s.stage = 'saving'; s.error = null; draw();
     try {
       if (demo) {
@@ -184,8 +226,18 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
           return { ...r, id, name: r.name || 'Routine', days: r.days.length ? r.days : [0, 1, 2, 3, 4, 5, 6],
             steps: r.steps.map((text, j) => ({ id: was[text] ? was[text].id : id + 's' + j, text, done: !!(was[text] && was[text].done) })) };
         }) };
+        if (s.data.packing) {
+          const lists = packFromEditor(s.data.packing).filter((l) => l.items.length).map((l, i) => {
+            const id = l.id || 'demopk' + Date.now() + i;
+            return { id, name: l.name || 'Packing', icon: l.icon, person: l.person, count: l.items.length,
+              items: l.items.map((text, j) => ({ id: id + 'i' + j, text })) };
+          });
+          snap.packing = { lists, trips: (snap.packing && snap.packing.trips) || [] };
+        }
       } else {
-        await apiPost('saveSettings', { pin: s.pin, settings: { ...s.data, routines: fromEditor(s.data.routines) } });
+        const settings = { ...s.data, routines: fromEditor(s.data.routines) };
+        if (s.data.packing) settings.packing = packFromEditor(s.data.packing); else delete settings.packing;
+        await apiPost('saveSettings', { pin: s.pin, settings });
       }
       s = null;
       onSaved();
@@ -235,6 +287,15 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
         r.days = r.days.includes(n) ? r.days.filter((x) => x !== n) : r.days.concat(n).sort();
         draw(); return true;
       }
+      const pkAdd = t.closest('[data-set-pk-add]');
+      if (pkAdd && s.data.packing) {
+        if (s.data.packing.length < MAX_PACK_LISTS) s.data.packing.push({ id: '', name: '', icon: '', person: null, itemsText: '' });
+        draw(); return true;
+      }
+      const pkDel = t.closest('[data-set-pk-del]');
+      if (pkDel && s.data.packing) {
+        s.data.packing.splice(+pkDel.dataset.setPkDel, 1); draw(); return true;
+      }
       const idle = t.closest('[data-set-idle]');
       if (idle) { s.data.options.idleMinutes = Number(idle.dataset.setIdle); draw(); return true; }
       if (t.closest('[data-set-save]')) { if (s.stage === 'edit') save(); return true; }
@@ -254,6 +315,13 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
         s.data.options[el.dataset.setOpt] = el.value;
       } else if (el.dataset.setRt != null && el.tagName !== 'SELECT') {
         s.data.routines[+el.dataset.setRt][el.dataset.field] = el.value;
+      } else if (el.dataset.setPk != null && el.tagName !== 'SELECT') {
+        const i = +el.dataset.setPk;
+        s.data.packing[i][el.dataset.field] = el.value;
+        if (el.dataset.field === 'itemsText') { // live count without a redraw
+          const n = lineCount(el.value), tag = scrim().querySelector(`[data-pk-n="${i}"]`);
+          if (tag) { tag.textContent = `${n}/${MAX_PACK_ITEMS}`; tag.classList.toggle('over', n > MAX_PACK_ITEMS); }
+        }
       }
     },
     /** Selects redraw (they can reveal more fields). */
@@ -266,6 +334,9 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
       } else if (el.dataset.setRt != null && el.tagName === 'SELECT') {
         s.data.routines[+el.dataset.setRt].person = el.value || null;
         draw(); // the row takes that person's colour
+      } else if (el.dataset.setPk != null && el.tagName === 'SELECT') {
+        s.data.packing[+el.dataset.setPk].person = el.value || null;
+        draw();
       }
     },
     handleKey(e) {

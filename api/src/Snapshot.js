@@ -47,6 +47,8 @@ function buildSnapshot() {
     }
     var routines = null;
     try { routines = routinesForSnapshot_(); } catch (e) { console.warn('routines read failed: ' + e); }
+    var packing = null;
+    try { packing = packingForSnapshot_(); } catch (e) { console.warn('packing read failed: ' + e); }
     writeSnapshot_({
       version: 1,
       updatedAt: now.toISOString(),
@@ -62,6 +64,7 @@ function buildSnapshot() {
       weatherAt: weatherLocation_(cfg), // clients fetch the forecast (see Weather.js)
       grocery: grocery,
       routines: routines,
+      packing: packing,
       items: r.items
     });
     props.setProperty('SNAP_LAST_OK', now.toISOString());

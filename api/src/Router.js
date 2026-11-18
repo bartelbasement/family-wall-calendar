@@ -56,7 +56,11 @@ var POST_ACTIONS = {
   groceryClear: function (b) { return groceryWrite_('clear', b); },
   getSettings: function (b) { return getSettingsForEditor_(b); },
   saveSettings: function (b) { return saveSettings_(b); },
-  routineTick: function (b) { return routineTick_(b); }
+  routineTick: function (b) { return routineTick_(b); },
+  packStart: function (b) { return packStart_(b); },
+  packTick: function (b) { return packTick_(b); },
+  packEnd: function (b) { return packEnd_(b); },
+  packEdit: function (b) { return packEdit_(b); }
 };
 
 function doGet(e) {

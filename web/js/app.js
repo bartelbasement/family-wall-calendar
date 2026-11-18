@@ -11,7 +11,7 @@ import { createWeather } from './weather.js?v=__V__';
 import { GROCERY_FORM, groceryListHtml, grocerySheetHtml } from './grocery.js?v=__V__';
 import { railHtml, viewsHtml, menuSheetHtml, peopleHtml, scheduleHtml, todosViewHtml } from './views.js?v=__V__';
 import { keepScroll } from './dom.js?v=__V__';
-import { routinesViewHtml, routinesOnNow, demoRoutines } from './routines.js?v=__V__';
+import { routinesViewHtml, routinesOnNow, demoRoutines, demoPacking } from './routines.js?v=__V__';
 
 // Night hours and idle time come from settings (snapshot.options), with these defaults.
 const DEFAULT_OPTIONS = { nightStart: '21:30', nightEnd: '06:30', idleMinutes: 2 };
@@ -78,7 +78,7 @@ const store = createStore({ onChange: render, demoUrl: demo ? './demo/snapshot.j
 const wx = createWeather(() => render());
 const settings = createSettings({
   demo,
-  getSnap: () => store.state.snap,
+  getSnap: () => { const s = store.state.snap; if (demo && s && !s.packing) s.packing = demoPacking(); return s; },
   onSaved: () => {
     ui.toast = { kind: 'ok', text: 'Settings saved' };
     setTimeout(() => { if (ui.toast && ui.toast.kind === 'ok') { ui.toast = null; render(); } }, 3000);
