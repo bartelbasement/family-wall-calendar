@@ -835,8 +835,9 @@ async function commitComplete(id) {
   }
 }
 
-// Wall: drift back to the home state when nobody is using it.
-if (mode.kiosk) {
+// Wall: drift back to the home state when nobody is using it. Also on
+// localhost, so the demo and device frames behave like the wall.
+if (mode.kiosk || location.hostname === 'localhost') {
   setInterval(() => {
     if (Date.now() - ui.lastTouch > idleMs() && (ui.sheet || ui.rail || settings.active() || ui.filter !== 'all' || ui.view !== 'week' || ($('.now-list') && $('.now-list').scrollTop > 4) || $('#week').scrollLeft > 4 || $('#todos').scrollLeft > 4)) {
       if (settings.active()) settings.close();
