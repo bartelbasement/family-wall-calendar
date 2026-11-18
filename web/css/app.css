@@ -95,6 +95,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .now-item.ongoing .tm::after { content: 'now'; display: block; font-size: .7em; font-weight: 600; opacity: .8; }
 .now-item.next { outline: .2rem solid var(--bd-p); outline-offset: -.1rem; }
 .now-more, .now-empty { font-size: 1.15rem; color: var(--muted); margin-top: .4rem; }
+.now-earlier { align-self: flex-start; margin: -.15rem 0 .5rem; padding: .35rem .8rem; border-radius: 1rem; border: 1px solid var(--line); font-size: 1rem; font-weight: 600; color: var(--muted); }
 
 /* ---------- Week grid ---------- */
 .week-wrap { position: relative; min-height: 0; display: flex; }

@@ -56,15 +56,19 @@ export function bannerHtml(items, filter) {
 }
 
 // ---------------------------------------------------------------- now column
+/** A timed event is over at its end, or 1 h after its start if it has no end. */
+const isOver = (x, tMs) => !x.allDay && Date.parse(x.end || x.start) + (x.end ? 0 : 3600e3) <= tMs;
+
 export function nowHtml(items, filter, ctx) {
   const t = now(), today = todayYmd();
   const p = parts(t);
   const evs = eventsOn(items, today).filter((x) => visible(x, filter));
   const allDay = evs.filter((x) => x.allDay);
   const timed = evs.filter((x) => !x.allDay);
-  // Keep an event while it is running: until its end, or 1 h after start if no end.
-  const live = timed.filter((x) => Date.parse(x.end || x.start) + (x.end ? 0 : 3600e3) > t.getTime());
-  const shown = live; // all of them: the list scrolls when they don't fit
+  // Keep an event while it is running; finished ones drop off, and an
+  // "Earlier today" line opens the whole day (finished events greyed).
+  const shown = timed.filter((x) => !isOver(x, t.getTime())); // all of them: the list scrolls when they don't fit
+  const earlier = timed.length - shown.length;
   const nextIdx = shown.findIndex((x) => Date.parse(x.start) > t.getTime());
 
   let html = `<div class="clock">${clockLabel(t)}<span class="ampm">${p.h < 12 ? 'am' : 'pm'}</span></div>
@@ -76,8 +80,10 @@ export function nowHtml(items, filter, ctx) {
       `<button class="chip-ad p-${bandCode(x.people)}" data-id="${esc(x.id)}">${esc(x.title)}</button>`).join('')}</div>`;
   }
 
+  html += `<div class="now-h">Today</div>`;
+  if (earlier) html += `<button class="now-earlier" data-day="${today}">Earlier today · ${earlier} <span aria-hidden="true">›</span></button>`;
   if (shown.length) {
-    html += `<div class="now-h">Today</div><div class="now-list">` + shown.map((x, i) => {
+    html += `<div class="now-list">` + shown.map((x, i) => {
       const ongoing = Date.parse(x.start) <= t.getTime();
       const sub = [x.note, x.location].filter(Boolean)[0];
       return `<button class="now-item p-${bandCode(x.people)}${ongoing ? ' ongoing' : ''}${i === nextIdx ? ' next' : ''}" data-id="${esc(x.id)}">
@@ -88,7 +94,7 @@ export function nowHtml(items, filter, ctx) {
     }).join('') + `</div>`;
   } else {
     // Nothing left today: preview the next day with events.
-    html += `<div class="now-h">Today</div><div class="now-empty">Nothing else today.</div>`;
+    html += `<div class="now-empty">Nothing else today.</div>`;
   }
   return html;
 }
@@ -231,7 +237,7 @@ export function daySheetHtml(items, day, filter, ctx) {
     <button class="close" data-close aria-label="Close">✕</button>
     <h3>${esc(longDateLabel(day))}</h3>
     ${icons.map((x) => `<p style="font-size:1.15rem;margin:.2rem 0 .8rem">${esc(x.icon)} ${esc(x.title)}</p>`).join('')}
-    <div class="day-list">${evs.map((x) => pillHtml(x, ctx, false)).join('') || '<p>Nothing scheduled.</p>'}</div>
+    <div class="day-list">${evs.map((x) => pillHtml(x, ctx, day === todayYmd() && isOver(x, now().getTime()))).join('') || '<p>Nothing scheduled.</p>'}</div>
     ${todos.length ? `<div class="now-h">Due this day</div><div class="day-list">${todos.map((x) =>
       `<button class="pill p-${bandCode(x.people)}" data-id="${esc(x.id)}"><span class="ti">☐ ${esc(x.title)}</span></button>`).join('')}</div>` : ''}
     </div>`;
