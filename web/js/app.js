@@ -9,6 +9,7 @@ import { bannerHtml, nowHtml, weekHtml, todosHtml, chipsHtml, itemSheetHtml, day
 import { headHtml, agendaHtml, phoneTodosHtml, tabsHtml } from './phone.js?v=__V__';
 import { createWeather } from './weather.js?v=__V__';
 import { GROCERY_FORM, groceryListHtml, grocerySheetHtml } from './grocery.js?v=__V__';
+import { viewsHtml, peopleHtml, scheduleHtml } from './views.js?v=__V__';
 
 // Night hours and idle time come from settings (snapshot.options), with these defaults.
 const DEFAULT_OPTIONS = { nightStart: '21:30', nightEnd: '06:30', idleMinutes: 2 };
@@ -39,9 +40,12 @@ const ui = {
   hidden: new Set(),    // to-do ids completed in Trello; hidden until the snapshot drops them
   toast: null,
   add: null,            // quick-add form state while the Add sheet is open
-  tab: 'cal'            // phone layout: 'cal' | 'todo'
+  tab: 'cal',           // phone layout: 'cal' | 'todo' | 'grocery'
+  view: 'week'          // wall layout: 'week' (home) | 'people' | 'sched'
 };
+const VIEWS = ['week', 'people', 'sched'];
 try { if (!mode.kiosk) ui.filter = localStorage.getItem('wall-filter') || 'all'; } catch (e) { /* ignore */ }
+try { if (!mode.kiosk) { const v = localStorage.getItem('wall-view'); if (VIEWS.includes(v)) ui.view = v; } } catch (e) { /* ignore */ }
 
 /** Phone layout: forced by ?mode=phone, or automatic on narrow screens (re-checked on rotate). */
 // Uses the same media query as the stylesheet, so layout and CSS can never disagree.
@@ -121,7 +125,7 @@ function render() {
 
   const stale = store.isStale() || !!error;
   stamp.textContent = store.state.refreshing ? '↻ Refreshing…'
-    : (demo ? 'DEMO · ' : '') + '↻ ' + (phone ? '' : 'Updated ') + clockLabel(snap.updatedAt) + (error ? ' · offline' : '');
+    : (demo ? 'DEMO · ' : '') + '↻ ' + clockLabel(snap.updatedAt) + (error ? ' · offline' : '');
   stamp.className = 'stamp' + (stale ? ' stale' : '');
 
   renderSheet(items, ctx);
@@ -209,6 +213,11 @@ function handleGroceryClick(t) {
 
 function renderWall(items, ctx, snap) {
   setHtml($('#banner'), bannerHtml(items, 'all')); // alerts matter to everyone: ignore the filter
+  const app = $('#app');
+  VIEWS.forEach((v) => app.classList.toggle('view-' + v, ui.view === v));
+  setHtml($('#views'), viewsHtml(ui.view));
+  if (ui.view === 'people') setHtml($('#alt'), peopleHtml(items, ui.filter, ctx, snap.people || []));
+  else if (ui.view === 'sched') setHtml($('#alt'), scheduleHtml(items, ui.filter, ctx));
   setHtml($('#now'), nowHtml(items, ui.filter, ctx));
   // Scroll strips are only rebuilt when their content changes: rewriting them
   // every minute interrupts swipes and leaves iPad Safari with unpainted cards.
@@ -311,6 +320,12 @@ document.addEventListener('click', (e) => {
   const t = e.target;
   if (t.closest('[data-close]') || t.id === 'scrim') { ui.sheet = null; ui.add = null; render(); return; }
   if (t.closest('[data-add-open]')) { openAdd(); return; }
+  const vb = t.closest('[data-view]');
+  if (vb) {
+    ui.view = vb.dataset.view;
+    try { if (!mode.kiosk) localStorage.setItem('wall-view', ui.view); } catch (err) { /* ignore */ }
+    render(); return;
+  }
   if (t.closest('[data-grocery-open]')) { ui.sheet = { type: 'grocery' }; render(); return; }
   if (handleGroceryClick(t)) return;
   if (t.closest('[data-refresh]')) { store.refreshNow(); return; }
@@ -516,9 +531,9 @@ async function commitComplete(id) {
 // Wall: drift back to the home state when nobody is using it.
 if (mode.kiosk) {
   setInterval(() => {
-    if (Date.now() - ui.lastTouch > idleMs() && (ui.sheet || settings.active() || ui.filter !== 'all' || $('#week').scrollLeft > 4 || $('#todos').scrollLeft > 4)) {
+    if (Date.now() - ui.lastTouch > idleMs() && (ui.sheet || settings.active() || ui.filter !== 'all' || ui.view !== 'week' || $('#week').scrollLeft > 4 || $('#todos').scrollLeft > 4)) {
       if (settings.active()) settings.close();
-      ui.sheet = null; ui.add = null; ui.filter = 'all'; render();
+      ui.sheet = null; ui.add = null; ui.filter = 'all'; ui.view = 'week'; render();
       ui.lastTouch = Date.now(); // reset once per idle spell, never in a loop
       $('#week').scrollTo({ left: 0, behavior: 'smooth' });
       $('#todos').scrollTo({ left: 0, behavior: 'smooth' });
