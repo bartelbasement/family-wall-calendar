@@ -12,3 +12,4 @@ api/src/Private.js
 
 # Local demo data with real names; never published
 web/demo/
+CLAUDE.local.md
