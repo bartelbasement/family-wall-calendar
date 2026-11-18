@@ -9,7 +9,7 @@ import { bannerHtml, nowHtml, weekHtml, todosHtml, chipsHtml, itemSheetHtml, day
 import { headHtml, agendaHtml, phoneTodosHtml, tabsHtml } from './phone.js?v=__V__';
 import { createWeather } from './weather.js?v=__V__';
 import { GROCERY_FORM, groceryListHtml, grocerySheetHtml } from './grocery.js?v=__V__';
-import { railHtml, peopleHtml, scheduleHtml } from './views.js?v=__V__';
+import { railHtml, viewsHtml, menuSheetHtml, peopleHtml, scheduleHtml } from './views.js?v=__V__';
 import { keepScroll } from './dom.js?v=__V__';
 
 // Night hours and idle time come from settings (snapshot.options), with these defaults.
@@ -47,6 +47,20 @@ const ui = {
   tab: 'cal',           // phone layout: 'cal' | 'todo' | 'grocery'
   view: 'week'          // wall layout: 'week' (home) | 'people' | 'sched'
 };
+// Menu style on this screen: 'rail' (side panel, default) or 'classic' (☰ in the
+// top-right corner, view switch and 🛒 in the bottom bar). Device-only, switched
+// from either menu, so the family can compare the two. Temporary: drop the loser.
+let menuStyle = 'rail';
+try { if (localStorage.getItem('wall-menu') === 'classic') menuStyle = 'classic'; } catch (e) { /* ignore */ }
+const classic = () => menuStyle === 'classic';
+document.getElementById('app').classList.toggle('menu-classic', classic());
+function setMenuStyle(style) {
+  menuStyle = style === 'classic' ? 'classic' : 'rail';
+  try { localStorage.setItem('wall-menu', menuStyle); } catch (e) { /* ignore */ }
+  $('#app').classList.toggle('menu-classic', classic());
+  ui.rail = false; ui.sheet = null;
+  render();
+}
 const VIEWS = ['week', 'people', 'sched'];
 const WALL_VIEWS = ['week', 'people']; // views offered on the wall (sched is built but hidden)
 try { if (!mode.kiosk) ui.filter = localStorage.getItem('wall-filter') || 'all'; } catch (e) { /* ignore */ }
@@ -150,6 +164,7 @@ function showStatus(phone) {
     stamp.className = 'stamp' + (st.stale ? ' stale' : '');
   }
   else renderRail();
+  document.querySelectorAll('.menu-btn').forEach((b) => b.classList.toggle('stale', st.stale));
 }
 
 function renderPhone(items, ctx, snap) {
@@ -260,11 +275,18 @@ function renderWall(items, ctx, snap) {
   setKeep($('#todos'), todosHtml(items, ui.filter, ctx));
   updateHints();
   setHtml($('#chips'), chipsHtml(snap.people || [], ui.filter));
+  if (classic()) {
+    setHtml($('#views'), viewsHtml(ui.view));
+    const groItems = groceryItems();
+    $('#gro-btn').hidden = !groItems;
+    const open = groItems ? groItems.filter((x) => !x.done).length : 0;
+    setHtml($('#gro-count'), open ? String(open) : '');
+  }
 }
 
 /** The wall's side panel. Redrawn with the status, and on its own when it opens or closes. */
 function renderRail() {
-  if (isPhone()) return;
+  if (isPhone() || classic()) return;
   const g = groceryItems();
   setHtml($('#rail'), railHtml(ui.view, ui.rail, ui.status || { text: '' }, g ? g.filter((x) => !x.done).length : null));
   $('#rail').classList.toggle('open', ui.rail);
@@ -288,6 +310,18 @@ function renderSheet(items, ctx) {
   if (settings.active()) return; // the settings module owns the sheet while open
   if (!ui.sheet) { scrim.hidden = true; scrim.innerHTML = ''; return; }
   let html = '';
+  scrim.classList.toggle('side-scrim', ui.sheet.type === 'menu');
+  if (ui.sheet.type === 'menu') {
+    const html = menuSheetHtml(ui.status || { text: '' });
+    const open = scrim.querySelector('.menu-sheet');
+    // Patch in place when already open so the slide-in doesn't replay on every redraw.
+    if (!open) scrim.innerHTML = html;
+    else if (scrim._menu !== html) { open.classList.add('no-anim'); open.innerHTML = html.replace(/^[\s\S]*?<div class="sheet menu-sheet"[^>]*>/, '').replace(/<\/div>\s*$/, ''); }
+    scrim._menu = html;
+    scrim._sheetKey = 'menu:';
+    scrim.hidden = false;
+    return;
+  }
   if (ui.sheet.type === 'grocery') {
     const items = groceryItems();
     if (!items) { ui.sheet = null; scrim.hidden = true; return; }
@@ -380,6 +414,9 @@ document.addEventListener('click', (e) => {
   const t = e.target;
   if (t.closest('[data-close]') || t.id === 'scrim') { ui.sheet = null; ui.add = null; render(); return; }
   if (t.closest('[data-add-open]')) { openAdd(); return; }
+  if (t.closest('[data-menu-open]')) { ui.sheet = { type: 'menu' }; ui.add = null; render(); return; }
+  const ms = t.closest('[data-menu-style]');
+  if (ms) { setMenuStyle(ms.dataset.menuStyle); return; }
   const vb = t.closest('[data-view]');
   if (vb) {
     ui.view = vb.dataset.view;

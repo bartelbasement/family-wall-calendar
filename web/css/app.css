@@ -614,3 +614,41 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 .rail-left .rail.open { width: calc(17rem + env(safe-area-inset-left)); }
 .rail-left .rail-top, .rail-left .rail-foot, .rail-left .rail-btn .rl { align-items: flex-start; }
 .rail-left .rail-btn { flex-direction: row; text-align: left; }
+
+/* ---------- ☰ menu style (#app.menu-classic) ----------
+   Device-only alternative to the side panel, switched from either menu so the
+   family can compare. Temporary: remove whichever loses. The ☰ sits in the
+   screen's top-right corner in every view (over the alert bar's right end when
+   one shows); the view switch and 🛒 go back in the bottom bar. */
+.menu-btn, .views, .gro-btn { display: none; }
+#app.menu-classic { position: relative; padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); }
+#app.menu-classic .rail { display: none; }
+#app.menu-classic > .menu-btn {
+  display: grid; place-items: center; position: absolute; z-index: 2; width: 2.8rem; height: 2.8rem; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--bg); font-size: 1.3rem; color: var(--muted);
+  top: calc(max(.9rem, env(safe-area-inset-top)) + .85rem); right: max(1rem, env(safe-area-inset-right));
+}
+#app.menu-classic:has(.banner:not(:empty)) > .menu-btn { top: calc(max(.9rem, env(safe-area-inset-top)) + .2rem); right: calc(max(1rem, env(safe-area-inset-right)) + .4rem); width: 2.4rem; height: 2.4rem; font-size: 1.15rem; }
+#app.menu-classic > .menu-btn.stale { border-color: var(--stale-tx); color: var(--stale-tx); background: var(--stale-bg); }
+#app.menu-classic > .menu-btn.stale::after { content: ''; position: absolute; top: .05rem; right: .05rem; width: .7rem; height: .7rem; border-radius: 50%; background: var(--stale-tx); border: 2px solid var(--bg); }
+#app.menu-classic .banner { padding-right: 3.6rem; }
+#app.menu-classic .pcol:last-child .pc-h { padding-right: 3.2rem; }
+#app.menu-classic .views { display: inline-flex; border: 1px solid var(--line); border-radius: 1.6rem; overflow: hidden; height: 3.1rem; }
+.view-btn { display: inline-flex; align-items: center; padding: 0 .85rem; font-size: 1.2rem; font-weight: 600; }
+.view-btn + .view-btn { border-left: 1px solid var(--line); }
+.view-btn[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+.view-btn .vl { display: none; }  /* icons only */
+#app.menu-classic .gro-btn:not([hidden]) { position: relative; height: 3.1rem; min-width: 3.1rem; padding: 0 .8rem; border-radius: 1.6rem; border: 1px solid var(--line); font-size: 1.3rem; display: inline-flex; align-items: center; gap: .3rem; }
+.gro-btn b { font-size: .9rem; }
+.gro-btn b:empty { display: none; }
+.scrim.side-scrim { place-items: stretch end; padding: 0; }
+.menu-sheet { width: min(24rem, 85vw); height: 100%; max-height: none; border-radius: 1.1rem 0 0 1.1rem; animation: menu-in .18s ease-out; display: flex; flex-direction: column; gap: .8rem; padding-top: calc(1.2rem + env(safe-area-inset-top)); }
+.menu-sheet.no-anim { animation: none; }
+@keyframes menu-in { from { transform: translateX(100%); } to { transform: none; } }
+.menu-warn { margin: 0; background: var(--stale-bg); color: var(--stale-tx); font-weight: 700; padding: .6rem .8rem; border-radius: .6rem; }
+.menu-list { display: flex; flex-direction: column; gap: .5rem; }
+.menu-item { display: flex; align-items: center; gap: .9rem; width: 100%; text-align: left; padding: .8rem 1rem; border-radius: .8rem; background: var(--surface); font-size: 1.25rem; font-weight: 600; }
+.menu-item .ic { font-size: 1.5rem; width: 2rem; text-align: center; color: var(--muted); }
+.menu-item .mi { display: flex; flex-direction: column; }
+.menu-item small { font-size: .9rem; font-weight: 500; color: var(--muted); }
+.menu-item small.stale { color: var(--stale-tx); font-weight: 700; }

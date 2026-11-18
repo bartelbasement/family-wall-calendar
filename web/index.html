@@ -21,6 +21,8 @@
 <div id="app">
   <!-- Side panel down the right edge (?rail=left for the left): views, Grocery, Refresh, Settings. Tap the app icon to expand. -->
   <nav id="rail" class="rail" aria-label="Sections"></nav>
+  <!-- ☰ menu style instead (Settings › Display › Menu, this device only): fixed top-right corner -->
+  <button class="menu-btn" data-menu-open aria-label="Menu">☰</button>
   <div id="banner" class="banner" role="status"></div>
   <div class="main">
     <div id="now-wrap" class="now-wrap"><section id="now" class="now" aria-label="Today"></section></div>
@@ -31,7 +33,9 @@
     <div class="todos-wrap" id="todos-wrap"><div id="todos" class="todos" aria-label="Open to-dos"></div></div>
     <div class="side">
       <div id="chips" class="chips" role="group" aria-label="Show"></div>
-      <span class="side-r"><button class="add-btn" data-add-open>＋ Add</button></span>
+      <span class="side-r"><span id="views" class="views" role="group" aria-label="View"></span>
+      <button class="gro-btn" id="gro-btn" data-grocery-open aria-label="Groceries" hidden>🛒<b id="gro-count"></b></button>
+      <button class="add-btn" data-add-open>＋ Add</button></span>
     </div>
   </div>
 </div>

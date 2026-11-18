@@ -13,6 +13,28 @@ function dayName(d, today) {
   return dayLabel(d);
 }
 
+// ---- ☰ menu style (Settings › Display › Menu; device-only, kept for comparison)
+/** Segmented Week | People switch for the bottom bar (☰ menu style only). */
+export function viewsHtml(view) {
+  const b = (v, ic, label) => `<button class="view-btn" data-view="${v}" aria-pressed="${view === v}" title="${label}"><span>${ic}</span><span class="vl">${label}</span></button>`;
+  return b('week', '▦', 'Week') + b('people', '👥', 'People');
+}
+
+/** The ☰ slide-in menu: refresh status, Refresh, Settings (PIN). */
+export function menuSheetHtml(st) {
+  return `<div class="sheet menu-sheet" role="dialog" aria-modal="true" aria-label="Menu">
+    <button class="close" data-close aria-label="Close">✕</button>
+    <h3>Menu</h3>
+    ${st.warn ? `<p class="menu-warn">${esc(st.warn)}</p>` : ''}
+    <div class="menu-list">
+      <button class="menu-item" data-refresh><span class="ic">↻</span><span class="mi">Refresh now<small class="${st.stale ? 'stale' : ''}">Updated ${esc(st.text)}</small></span></button>
+      <button class="menu-item" data-settings-open><span class="ic">⚙</span><span class="mi">Settings<small>Parent PIN</small></span></button>
+      <button class="menu-item" data-menu-style="rail"><span class="ic">⇄</span><span class="mi">Switch to side panel<small>Just this screen</small></span></button>
+    </div>
+  </div>`;
+}
+
+// ---- side panel style (default)
 /**
  * The wall's side panel: a narrow icon strip down the right edge with the app
  * icon (tap to expand), the views, Grocery, and Refresh / Settings at the foot.
@@ -34,6 +56,7 @@ export function railHtml(view, open, st, gro) {
       ${gro == null ? '' : btn('data-grocery-open', '🛒', 'Grocery', gro ? gro + ' to get' : 'All done', '', gro ? `<b class="rail-count">${gro}</b>` : '')}
     </div>
     <div class="rail-foot">
+      ${btn('data-menu-style="classic"', '⇄', 'Switch to ☰ menu', 'Just this screen')}
       ${btn('data-refresh', '↻', 'Refresh now', esc('Updated ' + st.text), st.stale ? ' stale' : '')}
       ${btn('data-settings-open', '⚙', 'Settings', 'Parent PIN')}
     </div>`;
