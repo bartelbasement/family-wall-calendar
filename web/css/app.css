@@ -577,6 +577,11 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 .menu-btn.stale::after { content: ''; position: absolute; top: .05rem; right: .05rem; width: .7rem; height: .7rem; border-radius: 50%; background: var(--stale-tx); border: 2px solid var(--bg); }
 .menu-btn-alt { display: none; }
 #app.view-people .menu-btn-alt, #app.view-sched .menu-btn-alt { display: grid; }
+#app { position: relative; }
+/* No alert: level with the top column header. With an alert: inside the right end of the alert bar. */
+#app > .menu-btn-alt { top: calc(max(.9rem, env(safe-area-inset-top)) + .85rem); right: max(1rem, env(safe-area-inset-right)); }
+#app:has(.banner:not(:empty)) > .menu-btn-alt { top: calc(max(.9rem, env(safe-area-inset-top)) + .2rem); right: calc(max(1rem, env(safe-area-inset-right)) + .4rem); width: 2.4rem; height: 2.4rem; font-size: 1.15rem; }
+#app.view-people .banner, #app.view-sched .banner { padding-right: 3.6rem; }
 #app.view-people .pcol:last-child .pc-h { padding-right: 3.2rem; }
 /* ☰ side panel */
 .scrim.side-scrim { place-items: stretch end; padding: 0; }

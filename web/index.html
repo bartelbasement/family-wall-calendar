@@ -19,14 +19,14 @@
 </head>
 <body>
 <div id="app">
+  <!-- ☰ for the other views (the clock panel is hidden there): screen's top-right corner, over the alert bar if one shows -->
+  <button class="menu-btn menu-btn-alt" data-menu-open aria-label="Menu">☰</button>
   <div id="banner" class="banner" role="status"></div>
   <div class="main">
     <div id="now-wrap" class="now-wrap"><section id="now" class="now" aria-label="Today"></section>
       <button class="menu-btn" data-menu-open aria-label="Menu">☰</button></div>
     <div class="week-wrap" id="week-wrap"><section id="week" class="week" aria-label="Coming days"></section></div>
     <section id="alt" class="alt" aria-live="polite"></section>
-    <!-- Same corner in the other views (the clock panel is hidden there) -->
-    <button class="menu-btn menu-btn-alt" data-menu-open aria-label="Menu">☰</button>
   </div>
   <div class="bottom">
     <div class="todos-wrap" id="todos-wrap"><div id="todos" class="todos" aria-label="Open to-dos"></div></div>
