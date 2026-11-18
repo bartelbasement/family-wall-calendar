@@ -728,8 +728,8 @@ function handlePackClick(t) {
     const list = P.lists.find((l) => l.id === start.dataset.packStart);
     if (!list) return true;
     const people = (store.state.snap && store.state.snap.people) || [];
-    // Preselect the list's owner, or the person the wall is filtered to.
-    const pre = [list.person, ui.filter].find((c) => c && packers(people).some((p) => p.code === c));
+    // Preselect the person the wall is filtered to, else the list's usual owner.
+    const pre = [ui.filter, list.person].find((c) => c && packers(people).some((p) => p.code === c));
     ui.sheet = { type: 'pack', listId: list.id, people: pre ? [pre] : [], leave: '', saving: false, error: null };
     render(); return true;
   }
