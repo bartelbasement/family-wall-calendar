@@ -3,6 +3,9 @@
 The repo is public. Never commit names, calendar IDs, keys, `api/src/Private.js`,
 the handoff file, or anything under `web/demo/`. Deploy steps are in README.md.
 
+Multi-family product work lives in `c:\Dev\Random Projects\family-wall` (private).
+If the request is about that, tell the owner to start the session there.
+
 ## UI decisions (keep these unless the owner says otherwise)
 
 - The wall's bottom bar looks identical in every view. Don't move controls in or
