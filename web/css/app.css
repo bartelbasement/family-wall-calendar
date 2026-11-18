@@ -324,3 +324,6 @@ button.stamp { min-height: 2.6rem; padding: 0 .8rem; border: 1px solid var(--lin
 .kw input { flex: 1; }
 .set-foot { display: grid; grid-template-columns: auto 1fr; gap: .6rem; margin-top: 1rem; }
 .set-foot .done-btn { margin-top: 0; background: var(--text); color: var(--bg); }
+
+/* first-load error details */
+.err-code { font-size: .85rem; color: var(--muted); margin-top: .6rem; }

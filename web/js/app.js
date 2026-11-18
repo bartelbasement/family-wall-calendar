@@ -81,9 +81,9 @@ function render() {
   const { snap, error } = store.state;
   const stamp = $('#stamp');
   if (!snap) {
-    $('#now').innerHTML = `<div class="clock">${clockLabel(now())}</div><p class="now-empty">${
-      error === 'missing_key' ? 'Open this page with the family link (it contains the access key).' : error ? 'Can’t reach the calendar right now.' : 'Loading…'}</p>`;
-    stamp.textContent = error ? 'Offline' : '';
+    $('#now').innerHTML = `<div class="clock">${clockLabel(now())}</div><p class="now-empty">${errorText(error)}</p>${
+      error ? `<p class="err-code">Details: ${escHtml(error)} · tap ↻ to retry</p>` : ''}`;
+    stamp.textContent = error ? (error === 'forbidden' || error === 'missing_key' ? '↻ Key problem' : '↻ Offline') : '';
     stamp.className = 'stamp' + (error ? ' stale' : '');
     return;
   }
@@ -119,6 +119,17 @@ function render() {
 
   renderSheet(items, ctx);
   $('#toast').innerHTML = toastHtml(ui.toast);
+}
+
+const escHtml = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/** Plain-language reason for a failed first load. */
+function errorText(error) {
+  if (!error) return 'Loading…';
+  if (error === 'missing_key') return 'This device doesn’t have the access key yet. Open the family link (the one ending in ?key=…) once on this device.';
+  if (error === 'forbidden') return 'This device’s access key isn’t valid (it may be cut off or mistyped). Open the full family link again.';
+  if (/^http_/.test(error)) return 'The calendar server returned an error. It usually clears up in a minute.';
+  return 'Can’t reach the calendar server from this device (network or browser blocked the request).';
 }
 
 function renderSheet(items, ctx) {
