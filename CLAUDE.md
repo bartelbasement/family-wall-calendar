@@ -5,12 +5,15 @@ the handoff file, or anything under `web/demo/`. Deploy steps are in README.md.
 
 ## UI decisions (keep these unless the owner says otherwise)
 
-- The wall's bottom bar looks identical in every view. Don't move controls in or
-  out of it per view.
-- New secondary features (Routines, a Schedule toggle, etc.) go in the ☰ side
-  menu (top-right), not as new bottom-bar buttons.
-- The view switch is a segmented, icon-only ▦ | 👥 pill (preferred over a
-  single toggle). The Schedule view is built but not offered on the wall.
+- The wall's bottom bar (to-do strip, people chips, ＋ Add) looks identical in
+  every view. Don't move controls in or out of it per view.
+- Views and secondary features (Calendar, People, Grocery, later To-dos and
+  Routines, plus Refresh and Settings) go in the side panel (`#rail`) on the
+  right edge, not as new bottom-bar buttons. The right side keeps a clean left
+  edge for the clock. It's a narrow icon strip; tapping the app icon expands
+  it leftward over the page. Labels are right-aligned, next to their icons.
+  `?rail=left` shows it on the left for comparison.
+- The Schedule view is built but not offered on the wall.
 - Today's weather has its own line under the date. It moves beside the clock
   only when Today's events need the room (`fitNow()` in `web/js/app.js`).
 - Where a browser's own pop-up looks out of place, use in-app controls (as with

@@ -13,24 +13,30 @@ function dayName(d, today) {
   return dayLabel(d);
 }
 
-/** Segmented Week | People switch for the wall's bottom bar. (The schedule view
- *  is built but not offered on the wall; scheduleHtml stays for later use.) */
-export function viewsHtml(view) {
-  const b = (v, ic, label) => `<button class="view-btn" data-view="${v}" aria-pressed="${view === v}" title="${label}"><span>${ic}</span><span class="vl">${label}</span></button>`;
-  return b('week', '▦', 'Week') + b('people', '👥', 'People');
-}
-
-/** The wall's ☰ side panel: refresh status, Refresh, Settings (PIN). Room for more later. */
-export function menuSheetHtml(st) {
-  return `<div class="sheet menu-sheet" role="dialog" aria-modal="true" aria-label="Menu">
-    <button class="close" data-close aria-label="Close">✕</button>
-    <h3>Menu</h3>
-    ${st.warn ? `<p class="menu-warn">${esc(st.warn)}</p>` : ''}
-    <div class="menu-list">
-      <button class="menu-item" data-refresh><span class="ic">↻</span><span class="mi">Refresh now<small class="${st.stale ? 'stale' : ''}">Updated ${esc(st.text)}</small></span></button>
-      <button class="menu-item" data-settings-open><span class="ic">⚙</span><span class="mi">Settings<small>Parent PIN</small></span></button>
+/**
+ * The wall's side panel: a narrow icon strip down the right edge with the app
+ * icon (tap to expand), the views, Grocery, and Refresh / Settings at the foot.
+ * Expanded, it slides wider (leftward) over the page and shows labels and details.
+ * Labels are always in the markup; the collapsed panel just clips them.
+ * (The schedule view is built but not offered on the wall.)
+ * @param gro open grocery count, or null when groceries aren't set up
+ */
+export function railHtml(view, open, st, gro) {
+  const btn = (attrs, ic, label, sub, cls = '', badge = '') =>
+    `<button class="rail-btn${cls}" ${attrs} aria-label="${label}" title="${label}"><span class="ic">${ic}${badge}</span>` +
+    `<span class="rl">${label}${sub ? `<small>${sub}</small>` : ''}</span></button>`;
+  const nav = (v, ic, label) => btn(`data-view="${v}"${view === v ? ' aria-current="page"' : ''}`, ic, label, '', view === v ? ' on' : '');
+  return `<div class="rail-top">
+      ${btn(`data-rail-toggle aria-expanded="${open}"`, '<img src="icons/icon-192.png" alt="">', 'Family', open ? 'Tap to close' : '', ' rail-home')}
+      ${open && st.warn ? `<p class="rail-warn">${esc(st.warn)}</p>` : ''}
+      ${nav('week', '▦', 'Calendar')}
+      ${nav('people', '👥', 'People')}
+      ${gro == null ? '' : btn('data-grocery-open', '🛒', 'Grocery', gro ? gro + ' to get' : 'All done', '', gro ? `<b class="rail-count">${gro}</b>` : '')}
     </div>
-  </div>`;
+    <div class="rail-foot">
+      ${btn('data-refresh', '↻', 'Refresh now', esc('Updated ' + st.text), st.stale ? ' stale' : '')}
+      ${btn('data-settings-open', '⚙', 'Settings', 'Parent PIN')}
+    </div>`;
 }
 
 // ---------------------------------------------------------------- people columns

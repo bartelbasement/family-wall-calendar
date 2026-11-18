@@ -491,10 +491,6 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 .gr-clear { text-transform: none; letter-spacing: 0; font-size: .9rem; border: 1px solid var(--line); border-radius: 1.2rem; padding: .35rem .8rem; min-height: 2.4rem; color: var(--text); }
 .gr-empty { color: var(--muted); text-align: center; margin: 2rem 0; }
 .gr-sheet .gr-list { max-height: 60dvh; overflow-y: auto; }
-.gro-btn { position: relative; height: 3.1rem; min-width: 3.1rem; padding: 0 .8rem; border-radius: 1.6rem; border: 1px solid var(--line); font-size: 1.3rem; display: inline-flex; align-items: center; gap: .3rem; }
-.gro-btn[hidden] { display: none; }
-.gro-btn b { font-size: .9rem; }
-.gro-btn b:empty { display: none; }
 .ph-tabs { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 1fr; }
 .ph-tab .count.muted { background: var(--muted); }
 .tab-grocery .ph-chips { display: none; }
@@ -506,11 +502,6 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 #app.view-people .now-wrap, #app.view-people .week-wrap, #app.view-sched .now-wrap, #app.view-sched .week-wrap { display: none; }
 #app.view-people .alt, #app.view-sched .alt { display: flex; }
 
-.views { display: inline-flex; border: 1px solid var(--line); border-radius: 1.6rem; overflow: hidden; height: 3.1rem; }
-.view-btn { display: inline-flex; align-items: center; gap: .35rem; padding: 0 .85rem; font-size: .95rem; font-weight: 600; }
-.view-btn + .view-btn { border-left: 1px solid var(--line); }
-.view-btn[aria-pressed="true"] { background: var(--text); color: var(--bg); }
-.view-btn .vl { display: none; } .view-btn { padding: 0 .85rem; font-size: 1.2rem; }  /* icons only */
 
 /* people columns */
 .pcols { flex: 1; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: .5rem; min-height: 0; }
@@ -574,29 +565,51 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 #app { grid-template-columns: minmax(0, 1fr); } /* never wider than the screen; the chip strip scrolls instead */
 .bottom { grid-template-columns: minmax(0, 1fr); }
 
-/* ☰ menu button: top-right of the clock panel (Week) or of the main area (other views) */
+/* Today panel */
 .now-wrap { position: relative; display: flex; flex-direction: column; min-height: 0; }
 .now-wrap > .now { flex: 1; }
 .main { position: relative; }
-.menu-btn { position: absolute; top: .1rem; right: 0; z-index: 2; width: 2.8rem; height: 2.8rem; border-radius: 50%; border: 1px solid var(--line); background: var(--bg); font-size: 1.3rem; display: grid; place-items: center; color: var(--muted); }
-.menu-btn.stale { border-color: var(--stale-tx); color: var(--stale-tx); background: var(--stale-bg); }
-.menu-btn.stale::after { content: ''; position: absolute; top: .05rem; right: .05rem; width: .7rem; height: .7rem; border-radius: 50%; background: var(--stale-tx); border: 2px solid var(--bg); }
-.menu-btn-alt { display: none; }
-#app.view-people .menu-btn-alt, #app.view-sched .menu-btn-alt { display: grid; }
-#app { position: relative; }
-/* No alert: level with the top column header. With an alert: inside the right end of the alert bar. */
-#app > .menu-btn-alt { top: calc(max(.9rem, env(safe-area-inset-top)) + .85rem); right: max(1rem, env(safe-area-inset-right)); }
-#app:has(.banner:not(:empty)) > .menu-btn-alt { top: calc(max(.9rem, env(safe-area-inset-top)) + .2rem); right: calc(max(1rem, env(safe-area-inset-right)) + .4rem); width: 2.4rem; height: 2.4rem; font-size: 1.15rem; }
-#app.view-people .banner, #app.view-sched .banner { padding-right: 3.6rem; }
-#app.view-people .pcol:last-child .pc-h { padding-right: 3.2rem; }
-/* ☰ side panel */
-.scrim.side-scrim { place-items: stretch end; padding: 0; }
-.menu-sheet { width: min(24rem, 85vw); height: 100%; max-height: none; border-radius: 1.1rem 0 0 1.1rem; animation: menu-in .18s ease-out; display: flex; flex-direction: column; gap: .8rem; padding-top: calc(1.2rem + env(safe-area-inset-top)); }
-@keyframes menu-in { from { transform: translateX(100%); } to { transform: none; } }
-.menu-warn { margin: 0; background: var(--stale-bg); color: var(--stale-tx); font-weight: 700; padding: .6rem .8rem; border-radius: .6rem; }
-.menu-list { display: flex; flex-direction: column; gap: .5rem; }
-.menu-item { display: flex; align-items: center; gap: .9rem; width: 100%; text-align: left; padding: .8rem 1rem; border-radius: .8rem; background: var(--surface); font-size: 1.25rem; font-weight: 600; }
-.menu-item .ic { font-size: 1.5rem; width: 2rem; text-align: center; color: var(--muted); }
-.menu-item .mi { display: flex; flex-direction: column; }
-.menu-item small { font-size: .9rem; font-weight: 500; color: var(--muted); }
-.menu-item small.stale { color: var(--stale-tx); font-weight: 700; }
+
+/* ---------- side panel (wall) ----------
+   A narrow icon strip fixed to the right edge (the clock keeps a clean left
+   edge). The app icon expands it leftward over the page (it doesn't push the
+   layout). Icons stay pinned to the screen edge; labels sit to their left and
+   are always in the markup, just clipped while collapsed. ?rail=left mirrors it. */
+:root { --rail-w: 3.6rem; }
+#app { padding-right: calc(var(--rail-w) + max(.9rem, env(safe-area-inset-right))); }
+.rail {
+  position: fixed; right: 0; top: 0; bottom: 0; z-index: 5; width: calc(var(--rail-w) + env(safe-area-inset-right)); overflow: hidden;
+  display: flex; flex-direction: column; justify-content: space-between; gap: .5rem;
+  padding: max(.9rem, env(safe-area-inset-top)) calc(.4rem + env(safe-area-inset-right)) max(.8rem, env(safe-area-inset-bottom)) .4rem;
+  background: var(--surface); border-left: 1px solid var(--line);
+  transition: width .18s ease-out, box-shadow .18s ease-out;
+}
+.rail.open { width: calc(17rem + env(safe-area-inset-right)); box-shadow: 0 0 2rem rgba(0,0,0,.25); }
+#app.rail-open::after { content: ''; position: fixed; inset: 0; z-index: 4; background: rgba(0,0,0,.25); }
+.rail-top, .rail-foot { display: flex; flex-direction: column; align-items: flex-end; gap: .45rem; }
+.rail-btn {
+  flex: none; display: flex; flex-direction: row-reverse; align-items: center; gap: .7rem; width: calc(17rem - .8rem); min-height: 2.8rem;
+  border-radius: .8rem; font-size: 1.15rem; font-weight: 600; white-space: nowrap; text-align: right;
+}
+.rail-btn .ic { position: relative; flex: none; width: 2.8rem; height: 2.8rem; display: grid; place-items: center; font-size: 1.35rem; color: var(--muted); border-radius: .8rem; }
+.rail-btn .rl { display: flex; flex-direction: column; align-items: flex-end; min-width: 0; }
+.rail-btn small { font-size: .85rem; font-weight: 500; color: var(--muted); }
+.rail-btn.on .ic { background: var(--text); color: var(--bg); }
+.rail.open .rail-btn.on { background: var(--text); color: var(--bg); }
+.rail.open .rail-btn.on small { color: inherit; opacity: .75; }
+.rail-btn.stale .ic { background: var(--stale-bg); color: var(--stale-tx); }
+.rail-btn.stale small { color: var(--stale-tx); font-weight: 700; }
+.rail-home { margin-bottom: .35rem; }
+.rail-home .ic img { width: 2.4rem; height: 2.4rem; border-radius: .6rem; display: block; }
+.rail-count { position: absolute; top: -.1rem; right: -.25rem; min-width: 1.2rem; height: 1.2rem; padding: 0 .25rem; border-radius: .6rem; background: var(--text); color: var(--bg); font-size: .72rem; font-weight: 800; display: grid; place-items: center; }
+.rail-warn { margin: 0 0 .3rem; width: calc(17rem - .8rem); white-space: normal; background: var(--stale-bg); color: var(--stale-tx); font-weight: 700; padding: .6rem .8rem; border-radius: .6rem; }
+/* ?rail=left: the same panel on the left edge, expanding rightward. */
+#app.rail-left { padding-right: max(1rem, env(safe-area-inset-right)); padding-left: calc(var(--rail-w) + max(.9rem, env(safe-area-inset-left))); }
+.rail-left .rail {
+  right: auto; left: 0; width: calc(var(--rail-w) + env(safe-area-inset-left));
+  border-left: 0; border-right: 1px solid var(--line);
+  padding-right: .4rem; padding-left: calc(.4rem + env(safe-area-inset-left));
+}
+.rail-left .rail.open { width: calc(17rem + env(safe-area-inset-left)); }
+.rail-left .rail-top, .rail-left .rail-foot, .rail-left .rail-btn .rl { align-items: flex-start; }
+.rail-left .rail-btn { flex-direction: row; text-align: left; }

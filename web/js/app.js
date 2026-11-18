@@ -9,7 +9,7 @@ import { bannerHtml, nowHtml, weekHtml, todosHtml, chipsHtml, itemSheetHtml, day
 import { headHtml, agendaHtml, phoneTodosHtml, tabsHtml } from './phone.js?v=__V__';
 import { createWeather } from './weather.js?v=__V__';
 import { GROCERY_FORM, groceryListHtml, grocerySheetHtml } from './grocery.js?v=__V__';
-import { viewsHtml, peopleHtml, scheduleHtml, menuSheetHtml } from './views.js?v=__V__';
+import { railHtml, peopleHtml, scheduleHtml } from './views.js?v=__V__';
 import { keepScroll } from './dom.js?v=__V__';
 
 // Night hours and idle time come from settings (snapshot.options), with these defaults.
@@ -27,6 +27,7 @@ const params = new URLSearchParams(location.search);
 const demo = params.has('demo');
 if (params.get('now')) setNow(params.get('now'));
 const themeParam = params.get('theme'); // light | dark | night (review aid)
+if (params.get('rail') === 'left') document.getElementById('app').classList.add('rail-left'); // side panel on the left (review aid)
 
 const mode = getMode();
 if (!demo) getKey();
@@ -41,7 +42,8 @@ const ui = {
   hidden: new Set(),    // to-do ids completed in Trello; hidden until the snapshot drops them
   toast: null,
   add: null,            // quick-add form state while the Add sheet is open
-  status: null,         // refresh status { text, stale, warn } for the stamp / ☰ menu
+  status: null,         // refresh status { text, stale, warn } for the phone stamp / wall side panel
+  rail: false,          // wall side panel expanded
   tab: 'cal',           // phone layout: 'cal' | 'todo' | 'grocery'
   view: 'week'          // wall layout: 'week' (home) | 'people' | 'sched'
 };
@@ -139,7 +141,7 @@ function render() {
 }
 
 /** Refresh status: the phone header shows the stamp; the wall puts it in the
- *  ☰ menu and marks the ☰ button amber when the data is old or offline. */
+ *  side panel, whose Refresh button turns amber when the data is old or offline. */
 function showStatus(phone) {
   const st = ui.status;
   if (phone) {
@@ -147,7 +149,7 @@ function showStatus(phone) {
     stamp.textContent = '↻ ' + st.text;
     stamp.className = 'stamp' + (st.stale ? ' stale' : '');
   }
-  document.querySelectorAll('.menu-btn').forEach((b) => b.classList.toggle('stale', st.stale));
+  else renderRail();
 }
 
 function renderPhone(items, ctx, snap) {
@@ -246,7 +248,6 @@ function renderWall(items, ctx, snap) {
   setHtml($('#banner'), bannerHtml(items, 'all')); // alerts matter to everyone: ignore the filter
   const app = $('#app');
   VIEWS.forEach((v) => app.classList.toggle('view-' + v, ui.view === v));
-  setHtml($('#views'), viewsHtml(ui.view));
   // #alt and #now hold their own scrolling lists (people columns, Today), and
   // #now changes every minute with the clock: keep those lists in place.
   if (ui.view === 'people') setKeep($('#alt'), peopleHtml(items, ui.filter, ctx, snap.people || []));
@@ -259,11 +260,17 @@ function renderWall(items, ctx, snap) {
   setKeep($('#todos'), todosHtml(items, ui.filter, ctx));
   updateHints();
   setHtml($('#chips'), chipsHtml(snap.people || [], ui.filter));
-  const groItems = groceryItems();
-  $('#gro-btn').hidden = !groItems;
-  const open = groItems ? groItems.filter((x) => !x.done).length : 0;
-  setHtml($('#gro-count'), open ? String(open) : '');
 }
+
+/** The wall's side panel. Redrawn with the status, and on its own when it opens or closes. */
+function renderRail() {
+  if (isPhone()) return;
+  const g = groceryItems();
+  setHtml($('#rail'), railHtml(ui.view, ui.rail, ui.status || { text: '' }, g ? g.filter((x) => !x.done).length : null));
+  $('#rail').classList.toggle('open', ui.rail);
+  $('#app').classList.toggle('rail-open', ui.rail);
+}
+function setRail(open) { if (ui.rail !== open) { ui.rail = open; renderRail(); } }
 
 const escHtml = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -281,17 +288,6 @@ function renderSheet(items, ctx) {
   if (settings.active()) return; // the settings module owns the sheet while open
   if (!ui.sheet) { scrim.hidden = true; scrim.innerHTML = ''; return; }
   let html = '';
-  scrim.classList.toggle('side-scrim', ui.sheet.type === 'menu');
-  if (ui.sheet.type === 'menu') {
-    const html = menuSheetHtml(ui.status || { text: '' });
-    const open = scrim.querySelector('.menu-sheet');
-    // Patch in place when already open so the slide-in doesn't replay on every redraw.
-    if (!open) scrim.innerHTML = html;
-    else if (scrim._menu !== html) { open.classList.add('no-anim'); open.innerHTML = html.replace(/^[\s\S]*?<div class="sheet menu-sheet"[^>]*>/, '').replace(/<\/div>\s*$/, ''); }
-    scrim._menu = html;
-    scrim.hidden = false;
-    return;
-  }
   if (ui.sheet.type === 'grocery') {
     const items = groceryItems();
     if (!items) { ui.sheet = null; scrim.hidden = true; return; }
@@ -371,12 +367,19 @@ document.addEventListener('click', (e) => {
     const inp = pk.querySelector('input');
     try { if (inp && inp.showPicker) inp.showPicker(); } catch (err) { /* already open, or unsupported */ }
   }
+  // Side panel: the app icon opens and closes it; while open, a tap outside
+  // only closes it, and picking an item closes it and then runs that item.
+  if (e.target.closest('[data-rail-toggle]')) { setRail(!ui.rail); return; }
+  if (ui.rail) {
+    const inRail = !!e.target.closest('#rail'); // check before the redraw detaches the target
+    setRail(false);
+    if (!inRail) return;
+  }
   if (settings.active()) { settings.handleClick(e.target); return; }
   if (e.target.closest('[data-settings-open]')) { ui.sheet = null; ui.add = null; settings.open(); return; }
   const t = e.target;
   if (t.closest('[data-close]') || t.id === 'scrim') { ui.sheet = null; ui.add = null; render(); return; }
   if (t.closest('[data-add-open]')) { openAdd(); return; }
-  if (t.closest('[data-menu-open]')) { ui.sheet = { type: 'menu' }; ui.add = null; render(); return; }
   const vb = t.closest('[data-view]');
   if (vb) {
     ui.view = vb.dataset.view;
@@ -412,6 +415,7 @@ document.addEventListener('click', (e) => {
 
 document.addEventListener('keydown', (e) => {
   if (settings.handleKey(e)) { e.preventDefault(); return; }
+  if (e.key === 'Escape' && ui.rail) { setRail(false); return; }
   if (e.key === 'Escape' && ui.sheet) { ui.sheet = null; ui.add = null; render(); }
   if (e.key === 'Enter' && e.target.id === 'add-title') { e.preventDefault(); submitAdd(); }
   if (e.key === 'Enter' && e.target.id === 'gr-input') { e.preventDefault(); groceryAdd(); }
@@ -609,9 +613,9 @@ async function commitComplete(id) {
 // Wall: drift back to the home state when nobody is using it.
 if (mode.kiosk) {
   setInterval(() => {
-    if (Date.now() - ui.lastTouch > idleMs() && (ui.sheet || settings.active() || ui.filter !== 'all' || ui.view !== 'week' || ($('.now-list') && $('.now-list').scrollTop > 4) || $('#week').scrollLeft > 4 || $('#todos').scrollLeft > 4)) {
+    if (Date.now() - ui.lastTouch > idleMs() && (ui.sheet || ui.rail || settings.active() || ui.filter !== 'all' || ui.view !== 'week' || ($('.now-list') && $('.now-list').scrollTop > 4) || $('#week').scrollLeft > 4 || $('#todos').scrollLeft > 4)) {
       if (settings.active()) settings.close();
-      ui.sheet = null; ui.add = null; ui.filter = 'all'; ui.view = 'week'; render();
+      ui.sheet = null; ui.add = null; ui.rail = false; ui.filter = 'all'; ui.view = 'week'; render();
       ui.lastTouch = Date.now(); // reset once per idle spell, never in a loop
       $('#week').scrollTo({ left: 0, behavior: 'smooth' });
       if ($('.now-list')) $('.now-list').scrollTo({ top: 0, behavior: 'smooth' });
