@@ -333,9 +333,9 @@ button.stamp { min-height: 2.6rem; padding: 0 .8rem; border: 1px solid var(--lin
    body.is-phone: agenda / to-dos tabs, sticky header with filters, bottom tab bar. */
 body:not(.is-phone) #phone { display: none; }
 .is-phone #app { display: none; }
-.is-phone { font-size: 16px; height: auto; overflow-x: hidden; }
+.is-phone { font-size: 16px; height: auto; overflow-x: hidden; overflow-x: clip; }
 html:has(body.is-phone) { font-size: 16px; height: auto; }
-.phone { min-height: 100dvh; display: flex; flex-direction: column; overflow-x: hidden; }
+.phone { min-height: 100dvh; display: flex; flex-direction: column; }  /* no overflow here: it would stop the header sticking */
 
 .ph-top {
   position: sticky; top: 0; z-index: 5; background: var(--bg);
