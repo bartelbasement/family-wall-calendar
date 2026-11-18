@@ -3,6 +3,7 @@
 import { apiPost } from './api.js?v=__V__';
 import { SWATCHES, DEFAULTS } from './theme.js?v=__V__';
 import { esc } from './render.js?v=__V__';
+import { keepScroll } from './dom.js?v=__V__';
 
 const STYLE_LABELS = { normal: 'Normal', icons: 'Icon in day header', fold: 'One item per day' };
 const IDLE_CHOICES = [1, 2, 3, 5, 10];
@@ -17,10 +18,14 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
   let s = null; // { stage, pin, error, data, tab, swatches }
   const scrim = () => document.getElementById('scrim');
 
-  function draw() {
+  // Keep the scroll position across redraws (e.g. picking a swatch), so the
+  // list doesn't jump back to the top. Switching tabs passes top = true.
+  function draw(top) {
     if (!s) return;
-    scrim().innerHTML = s.stage === 'pin' ? pinHtml() : s.stage === 'loading' ? msgHtml('Loading settings…') : editHtml();
-    scrim().hidden = false;
+    const el = scrim();
+    const fill = () => { el.innerHTML = s.stage === 'pin' ? pinHtml() : s.stage === 'loading' ? msgHtml('Loading settings…') : editHtml(); };
+    if (top) fill(); else keepScroll(el, fill);
+    el.hidden = false;
   }
 
   const msgHtml = (m) => `<div class="sheet set-sheet" role="dialog" aria-modal="true"><button class="close" data-set-close aria-label="Close">✕</button><h3>Settings</h3><p>${esc(m)}</p></div>`;
@@ -167,7 +172,7 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
       }
       if (!s.data) return !!t.closest('.set-sheet');
       const tab = t.closest('[data-set-tab]');
-      if (tab) { s.tab = tab.dataset.setTab; draw(); return true; }
+      if (tab) { s.tab = tab.dataset.setTab; draw(true); return true; }
       const tg = t.closest('[data-set-cal-toggle]');
       if (tg) { const c = s.data.calendars[+tg.dataset.setCalToggle]; c.include = !c.include; draw(); return true; }
       const sw = t.closest('[data-set-swatch]');

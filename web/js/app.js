@@ -10,6 +10,7 @@ import { headHtml, agendaHtml, phoneTodosHtml, tabsHtml } from './phone.js?v=__V
 import { createWeather } from './weather.js?v=__V__';
 import { GROCERY_FORM, groceryListHtml, grocerySheetHtml } from './grocery.js?v=__V__';
 import { viewsHtml, peopleHtml, scheduleHtml, menuSheetHtml } from './views.js?v=__V__';
+import { keepScroll } from './dom.js?v=__V__';
 
 // Night hours and idle time come from settings (snapshot.options), with these defaults.
 const DEFAULT_OPTIONS = { nightStart: '21:30', nightEnd: '06:30', idleMinutes: 2 };
@@ -246,14 +247,16 @@ function renderWall(items, ctx, snap) {
   const app = $('#app');
   VIEWS.forEach((v) => app.classList.toggle('view-' + v, ui.view === v));
   setHtml($('#views'), viewsHtml(ui.view));
-  if (ui.view === 'people') setHtml($('#alt'), peopleHtml(items, ui.filter, ctx, snap.people || []));
-  else if (ui.view === 'sched') setHtml($('#alt'), scheduleHtml(items, ui.filter, ctx));
-  setHtml($('#now'), nowHtml(items, ui.filter, ctx));
+  // #alt and #now hold their own scrolling lists (people columns, Today), and
+  // #now changes every minute with the clock: keep those lists in place.
+  if (ui.view === 'people') setKeep($('#alt'), peopleHtml(items, ui.filter, ctx, snap.people || []));
+  else if (ui.view === 'sched') setKeep($('#alt'), scheduleHtml(items, ui.filter, ctx));
+  setKeep($('#now'), nowHtml(items, ui.filter, ctx));
   fitNow();
   // Scroll strips are only rebuilt when their content changes: rewriting them
   // every minute interrupts swipes and leaves iPad Safari with unpainted cards.
-  setStrip($('#week'), weekHtml(items, ui.filter, ctx));
-  setStrip($('#todos'), todosHtml(items, ui.filter, ctx));
+  setKeep($('#week'), weekHtml(items, ui.filter, ctx));
+  setKeep($('#todos'), todosHtml(items, ui.filter, ctx));
   updateHints();
   setHtml($('#chips'), chipsHtml(snap.people || [], ui.filter));
   const groItems = groceryItems();
@@ -308,7 +311,12 @@ function renderSheet(items, ctx) {
   } else {
     html = daySheetHtml(items, ui.sheet.day, ui.filter, ctx);
   }
-  scrim.innerHTML = html;
+  // Redraws of the same pop-up (clock tick, refresh, a tap inside it) keep their
+  // scroll position; opening a different item or day starts at the top.
+  const key = ui.sheet.type + ':' + (ui.sheet.id || ui.sheet.day || '');
+  if (scrim._sheetKey === key && !scrim.hidden) keepScroll(scrim, () => { scrim.innerHTML = html; });
+  else scrim.innerHTML = html;
+  scrim._sheetKey = key;
   scrim.hidden = false;
 }
 
@@ -319,10 +327,7 @@ function setHtml(el, html) {
   el.innerHTML = html; el._html = html;
   return true;
 }
-function setStrip(el, html) {
-  const keep = el.scrollLeft;
-  if (setHtml(el, html)) el.scrollLeft = keep;
-}
+function setKeep(el, html) { return keepScroll(el, () => setHtml(el, html)); }
 
 function updateHints() {
   for (const [stripSel, wrapSel] of [['#week', '#week-wrap'], ['#todos', '#todos-wrap']]) {
@@ -427,16 +432,9 @@ function todayYmdLocal() { const p = parts(now()); return `${p.y}-${String(p.mo)
 function drawAdd() {
   const scrim = $('#scrim');
   const hadFocus = document.activeElement && document.activeElement.id === 'add-title';
-  // Keep the scroll position: on phones the sheet is full-screen and scrolled,
-  // and rebuilding it would otherwise jump back to the top on every tap.
-  const old = scrim.querySelector('.add-sheet');
-  const keep = { sheet: old ? old.scrollTop : 0, scrim: scrim.scrollTop, page: window.scrollY };
-  scrim.innerHTML = addSheetHtml(ui.add, (store.state.snap && store.state.snap.people) || []);
+  // On phones the sheet is full-screen and scrolled: keep its place on every tap.
+  keepScroll(scrim, () => { scrim.innerHTML = addSheetHtml(ui.add, (store.state.snap && store.state.snap.people) || []); });
   scrim.hidden = false;
-  const neu = scrim.querySelector('.add-sheet');
-  if (neu) neu.scrollTop = keep.sheet;
-  scrim.scrollTop = keep.scrim;
-  if (window.scrollY !== keep.page) window.scrollTo(0, keep.page);
   if (hadFocus) { const i = $('#add-title'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
 }
 
