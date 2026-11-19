@@ -5,7 +5,7 @@ import { esc, bandCode, badges, eventsOn, visible, ADULTS } from './render.js?v=
 import { dayWx } from './weather.js?v=__V__';
 
 const PEOPLE_DAYS = 7;
-const SCHED_DAYS = 7; // rendered; CSS shows 4–7 by the width available (.sc-n5+)
+const SCHED_DAYS = 7; // rendered; CSS shows 4, 5 or 7 by the width available (.sc-n5+)
 
 function dayName(d, today) {
   if (d === today) return 'Today';

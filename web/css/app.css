@@ -621,11 +621,14 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
   flex: 1; min-height: 0; display: grid; gap: 0 .4rem;
   --sdays: 4; grid-template-columns: 3.4rem repeat(var(--sdays), minmax(0, 1fr)); grid-template-rows: auto minmax(0, 1fr);
 }
-/* Seven days are rendered; wider screens show more of them (about 15rem a day, so the iPad keeps 4). */
+/* Seven days are rendered; wider screens show 4, 5 or a full week of 7 (6 skipped: it means nothing on a rolling view).
+   The iPad (about 64rem) keeps 4. */
 .sched .sc-n5, .sched .sc-n6, .sched .sc-n7 { display: none; }
 @container alt (min-width: 80rem) { .sched { --sdays: 5; } .sched .sc-h.sc-n5 { display: flex; } .sched .sc-col.sc-n5 { display: block; } }
-@container alt (min-width: 95rem) { .sched { --sdays: 6; } .sched .sc-h.sc-n6 { display: flex; } .sched .sc-col.sc-n6 { display: block; } }
-@container alt (min-width: 110rem) { .sched { --sdays: 7; } .sched .sc-h.sc-n7 { display: flex; } .sched .sc-col.sc-n7 { display: block; } }
+@container alt (min-width: 95rem) {
+  .sched { --sdays: 7; }
+  .sched .sc-h.sc-n6, .sched .sc-h.sc-n7 { display: flex; } .sched .sc-col.sc-n6, .sched .sc-col.sc-n7 { display: block; }
+}
 .sc-corner { grid-row: 1; grid-column: 1; }
 .sc-h { grid-row: 1; display: flex; flex-direction: column; gap: .3rem; padding-bottom: .4rem; min-width: 0; }
 .sc-dh { display: flex; align-items: baseline; flex-wrap: wrap; gap: .1rem .45rem; padding: .3rem .5rem; border-radius: .5rem; background: var(--surface); text-align: left; width: 100%; }
