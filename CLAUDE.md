@@ -13,7 +13,7 @@ the handoff file, or anything under `web/demo/`. Deploy steps are in README.md.
   edge for the clock. It's a narrow icon strip; tapping the app icon expands
   it leftward over the page. Labels are right-aligned, next to their icons.
   `?rail=left` shows it on the left for comparison.
-- The Schedule view is built but not offered on the wall.
+- The Schedule (timeline) view is in the side panel as "Timeline", after People.
 - Today's weather has its own line under the date. It moves beside the clock
   only when Today's events need the room (`fitNow()` in `web/js/app.js`).
 - Where a browser's own pop-up looks out of place, use in-app controls (as with

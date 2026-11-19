@@ -66,7 +66,7 @@ function setMenuStyle(style) {
   render();
 }
 const VIEWS = ['week', 'people', 'todos', 'routines', 'sched'];
-const WALL_VIEWS = ['week', 'people', 'todos', 'routines']; // views offered on the wall (sched is built but hidden)
+const WALL_VIEWS = VIEWS; // every view is offered on the wall's side panel
 try { if (!mode.kiosk) ui.filter = localStorage.getItem('wall-filter') || 'all'; } catch (e) { /* ignore */ }
 try { if (!mode.kiosk) { const v = localStorage.getItem('wall-view'); if (WALL_VIEWS.includes(v)) ui.view = v; } } catch (e) { /* ignore */ }
 try { if (localStorage.getItem('wall-todo-mode') === 'person') ui.todoMode = 'person'; } catch (e) { /* ignore */ }

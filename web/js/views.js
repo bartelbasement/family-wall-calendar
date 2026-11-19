@@ -40,7 +40,6 @@ export function menuSheetHtml(st) {
  * icon (tap to expand), the views, Grocery, and Refresh / Settings at the foot.
  * Expanded, it slides wider (leftward) over the page and shows labels and details.
  * Labels are always in the markup; the collapsed panel just clips them.
- * (The schedule view is built but not offered on the wall.)
  * @param gro open grocery count, or null when groceries aren't set up
  * @param todos open to-do count (all people)
  * @param rtn routines on right now and not finished
@@ -55,6 +54,7 @@ export function railHtml(view, open, st, gro, todos, rtn) {
       ${open && st.warn ? `<p class="rail-warn">${esc(st.warn)}</p>` : ''}
       ${nav('week', '▦', 'Calendar')}
       ${nav('people', '👥', 'People')}
+      ${nav('sched', '🕒', 'Timeline', 'Next 4 days')}
       ${nav('todos', '☑', 'To-dos', todos ? todos + ' open' : 'All done', todos ? `<b class="rail-count">${todos}</b>` : '')}
       ${nav('routines', '⭐', 'Routines', rtn ? rtn + ' on now' : 'Nothing on now', rtn ? `<b class="rail-count">${rtn}</b>` : '')}
       ${gro == null ? '' : btn('data-grocery-open', '🛒', 'Grocery', gro ? gro + ' to get' : 'All done', '', gro ? `<b class="rail-count">${gro}</b>` : '')}
