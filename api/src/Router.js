@@ -53,6 +53,8 @@ var POST_ACTIONS = {
   setPeople: function (b) { return setPeople_(b); },
   groceryAdd: function (b) { return groceryWrite_('add', b); },
   groceryToggle: function (b) { return groceryWrite_('toggle', b); },
+  groceryRename: function (b) { return groceryWrite_('rename', b); },
+  groceryRemove: function (b) { return groceryWrite_('remove', b); },
   groceryClear: function (b) { return groceryWrite_('clear', b); },
   getSettings: function (b) { return getSettingsForEditor_(b); },
   saveSettings: function (b) { return saveSettings_(b); },

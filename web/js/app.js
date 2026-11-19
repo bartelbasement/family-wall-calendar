@@ -185,7 +185,7 @@ function renderPhone(items, ctx, snap) {
   document.body.classList.toggle('tab-grocery', ui.tab === 'grocery');
   if (ui.tab === 'grocery') {
     setHtml($('#ph-main'), GROCERY_FORM); // constant: never rebuilt, so typing survives refreshes
-    setHtml($('#gr-list'), groceryListHtml(groItems));
+    drawGroceryList(groItems);
   } else {
     setHtml($('#ph-main'), ui.tab === 'todo' ? phoneTodosHtml(items, ui.filter, ctx)
       : ui.tab === 'routines' ? routinesViewHtml(routinesData(), ui.filter, snap.people || [], packingData(), ui.pk)
@@ -197,7 +197,7 @@ function renderPhone(items, ctx, snap) {
 // ---------------------------------------------------------------- groceries
 // The server list (snap.grocery) is shown, except while writes are in flight:
 // then a local copy with the optimistic changes is shown instead.
-const gro = { items: null, busy: 0 };
+const gro = { items: null, busy: 0, edit: null }; // edit: { id, draft, focus } while an item is being renamed
 let groQueue = Promise.resolve();
 
 /** Items to show, or null when no grocery list is set up. */
@@ -238,8 +238,48 @@ function groceryAdd() {
   groceryOp('groceryAdd', { name }, (items) => items.push({ id: 'tmp-' + crypto.randomUUID(), name, done: false }));
 }
 
+/** Draws the list. The edit box's text lives in gro.edit.draft, so a redraw
+ *  (another device's change, a refresh) doesn't lose what is being typed. */
+function drawGroceryList(items) {
+  if (gro.edit && !items.some((x) => x.id === gro.edit.id)) gro.edit = null; // removed elsewhere
+  const typing = document.activeElement && document.activeElement.id === 'gr-edit-in';
+  if (!setHtml($('#gr-list'), groceryListHtml(items, gro.edit && gro.edit.id)) || !gro.edit) return;
+  const input = $('#gr-edit-in');
+  if (!input) return;
+  input.value = gro.edit.draft;
+  if (typing || gro.edit.focus) {
+    gro.edit.focus = false;
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  }
+}
+
+function grocerySaveEdit() {
+  const e = gro.edit;
+  if (!e) return;
+  gro.edit = null;
+  const name = e.draft.replace(/\s+/g, ' ').trim();
+  const item = (groceryItems() || []).find((x) => x.id === e.id);
+  if (!item || !name || name === item.name) { render(); return; } // nothing to save
+  groceryOp('groceryRename', { itemId: e.id, name }, (items) => { const x = items.find((i) => i.id === e.id); if (x) x.name = name; });
+}
+
 function handleGroceryClick(t) {
   if (t.closest('[data-gr-add]')) { groceryAdd(); return true; }
+  const edit = t.closest('[data-gr-edit]');
+  if (edit) {
+    const item = (groceryItems() || []).find((x) => x.id === edit.dataset.grEdit);
+    if (item) { gro.edit = { id: item.id, draft: item.name, focus: true }; render(); }
+    return true;
+  }
+  if (t.closest('[data-gr-save]')) { grocerySaveEdit(); return true; }
+  const del = t.closest('[data-gr-del]');
+  if (del) {
+    const id = del.dataset.grDel;
+    gro.edit = null;
+    groceryOp('groceryRemove', { itemId: id }, (items) => { const i = items.findIndex((x) => x.id === id); if (i >= 0) items.splice(i, 1); });
+    return true;
+  }
   const row = t.closest('[data-gr-toggle]');
   if (row) {
     const id = row.dataset.grToggle;
@@ -342,7 +382,7 @@ function renderSheet(items, ctx) {
     if (!items) { ui.sheet = null; scrim.hidden = true; return; }
     if (!scrim.querySelector('.gr-sheet')) { scrim.innerHTML = grocerySheetHtml(); $('#gr-list')._html = null; }
     scrim.hidden = false;
-    setHtml($('#gr-list'), groceryListHtml(items));
+    drawGroceryList(items);
     return;
   }
   if (ui.sheet.type === 'pack') {
@@ -469,7 +509,7 @@ document.addEventListener('click', (e) => {
     try { if (!mode.kiosk) localStorage.setItem('wall-view', ui.view); } catch (err) { /* ignore */ }
     render(); return;
   }
-  if (t.closest('[data-grocery-open]')) { ui.sheet = { type: 'grocery' }; render(); return; }
+  if (t.closest('[data-grocery-open]')) { gro.edit = null; ui.sheet = { type: 'grocery' }; render(); return; }
   if (handleGroceryClick(t)) return;
   if (t.closest('[data-refresh]')) { store.refreshNow(); return; }
   const tab = t.closest('[data-tab]');
@@ -498,6 +538,10 @@ document.addEventListener('click', (e) => {
 
 document.addEventListener('keydown', (e) => {
   if (settings.handleKey(e)) { e.preventDefault(); return; }
+  if (e.target.id === 'gr-edit-in') {
+    if (e.key === 'Enter') { e.preventDefault(); grocerySaveEdit(); return; }
+    if (e.key === 'Escape') { gro.edit = null; render(); return; } // cancel the edit, keep the list open
+  }
   if (e.key === 'Escape' && ui.rail) { setRail(false); return; }
   if (e.key === 'Escape' && ui.sheet) { ui.sheet = null; ui.add = null; render(); }
   if (e.key === 'Enter' && e.target.id === 'add-title') { e.preventDefault(); submitAdd(); }
@@ -586,6 +630,7 @@ function handleAddClick(t) {
 
 document.addEventListener('input', (e) => {
   settings.handleInput(e);
+  if (e.target.id === 'gr-edit-in' && gro.edit) { gro.edit.draft = e.target.value; return; }
   if (!ui.add) return;
   if (e.target.id === 'add-title') {
     ui.add.title = e.target.value;

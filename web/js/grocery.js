@@ -10,11 +10,23 @@ export const GROCERY_FORM = `<div class="gr">
   <div id="gr-list" class="gr-list"></div>
 </div>`;
 
-export function groceryListHtml(items) {
+/** editId: the item being edited, shown as a text box with Save and Delete. Its text
+ *  is filled in by the caller, so a background redraw can't wipe what is being typed. */
+export function groceryListHtml(items, editId) {
   const open = items.filter((x) => !x.done), done = items.filter((x) => x.done);
   if (!items.length) return `<p class="gr-empty">The list is empty. Add what you need above.</p>`;
-  const row = (x) => `<button class="gr-row${x.done ? ' done' : ''}${String(x.id).startsWith('tmp-') ? ' saving' : ''}" data-gr-toggle="${esc(x.id)}">
-    <span class="box" aria-hidden="true">${x.done ? '✓' : ''}</span><span class="gr-name">${esc(x.name)}</span></button>`;
+  const row = (x) => {
+    const saving = String(x.id).startsWith('tmp-');
+    if (x.id === editId) {
+      return `<div class="gr-item editing">
+      <input id="gr-edit-in" class="gr-edit-in" type="text" maxlength="100" autocomplete="off" enterkeyhint="done" aria-label="Item name">
+      <button class="gr-save" data-gr-save="${esc(x.id)}">Save</button>
+      <button class="gr-del" data-gr-del="${esc(x.id)}" aria-label="Delete ${esc(x.name)}">🗑</button></div>`;
+    }
+    return `<div class="gr-item"><button class="gr-row${x.done ? ' done' : ''}${saving ? ' saving' : ''}" data-gr-toggle="${esc(x.id)}">
+    <span class="box" aria-hidden="true">${x.done ? '✓' : ''}</span><span class="gr-name">${esc(x.name)}</span></button>${
+      saving ? '' : `<button class="gr-edit" data-gr-edit="${esc(x.id)}" aria-label="Edit ${esc(x.name)}">✎</button>`}</div>`;
+  };
   return open.map(row).join('') +
     (done.length ? `<div class="gr-done-h"><span>In the cart · ${done.length}</span>
       <button class="gr-clear" data-gr-clear>Clear checked</button></div>${done.map(row).join('')}` : '');

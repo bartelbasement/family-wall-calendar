@@ -3,7 +3,8 @@
  * (e.g. to Google Tasks) without touching the wall. Current implementation:
  * one Trello card with a checklist, set by PRIVATE_CONFIG.grocery = { card: '<id or short link>' }.
  *
- * Adapter shape: read() -> { items:[{id,name,done}] }, add(name), setDone(id, done), clearDone().
+ * Adapter shape: read() -> { items:[{id,name,done}] }, add(name), setDone(id, done), rename(id, name),
+ * remove(id), clearDone().
  */
 var GROCERY_CHECKLIST_NAME_ = 'Groceries';
 
@@ -49,6 +50,12 @@ function trelloChecklistList_(cfg, cardRef) {
     setDone: function (itemId, done) {
       trelloWrite_('put', '/cards/' + card_() + '/checkItem/' + itemId, { state: done ? 'complete' : 'incomplete' });
     },
+    rename: function (itemId, name) {
+      trelloWrite_('put', '/cards/' + card_() + '/checkItem/' + itemId, { name: name });
+    },
+    remove: function (itemId) {
+      trelloWrite_('delete', '/cards/' + card_() + '/checkItem/' + itemId, {});
+    },
     clearDone: function () {
       checklists_().forEach(function (cl) {
         (cl.checkItems || []).forEach(function (it) {
@@ -65,19 +72,30 @@ function readGrocery_(cfg) {
   return a ? a.read() : null;
 }
 
-/** POST groceryAdd { name, requestId } | groceryToggle { itemId, done, requestId } | groceryClear { requestId } */
+/** POST groceryAdd { name } | groceryToggle { itemId, done } | groceryRename { itemId, name }
+ *  | groceryRemove { itemId } | groceryClear {}, each with a requestId. */
 function groceryWrite_(op, body) {
   return once_(body.requestId, function () {
     var cfg = getConfig_();
     var a = groceryAdapter_(cfg);
     if (!a) throw new Error('No grocery list is set up');
-    if (op === 'add') {
+    function name_() {
       var name = String(body.name || '').replace(/\s+/g, ' ').trim();
       if (!name || name.length > 100) throw new Error('item must be 1 to 100 characters');
-      a.add(name);
-    } else if (op === 'toggle') {
+      return name;
+    }
+    function itemId_() {
       if (!/^[0-9a-f]{24}$/.test(String(body.itemId || ''))) throw new Error('bad itemId');
-      a.setDone(String(body.itemId), !!body.done);
+      return String(body.itemId);
+    }
+    if (op === 'add') {
+      a.add(name_());
+    } else if (op === 'toggle') {
+      a.setDone(itemId_(), !!body.done);
+    } else if (op === 'rename') {
+      a.rename(itemId_(), name_());
+    } else if (op === 'remove') {
+      a.remove(itemId_());
     } else if (op === 'clear') {
       a.clearDone();
     } else {
