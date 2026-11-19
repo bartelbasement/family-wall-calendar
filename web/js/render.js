@@ -138,7 +138,7 @@ export function weekHtml(items, filter, ctx) {
       ${shown.map((x) => pillHtml(x, ctx, d === today && !x.allDay && Date.parse(x.end || x.start) < tNow)).join('')}
       ${rest > 0 ? `<button class="more" data-day="${d}">+${rest} more</button>` : ''}
       ${!evs.length ? `<div class="day-free">${off ? 'No school' : 'Free'}</div>` : ''}
-      ${todos.length ? `<button class="todo-mark" data-day="${d}">☐ ${esc(todos[0].title)}${todos.length > 1 ? ` +${todos.length - 1}` : ''}</button>` : ''}
+      ${todos.length ? `<button class="todo-mark p-${bandCode(todos[0].people)}" data-day="${d}"><span class="ti">☐ ${esc(todos[0].title)}${todos.length > 1 ? ` +${todos.length - 1}` : ''}</span></button>` : ''}
     </section>`;
   }).join('');
 }
