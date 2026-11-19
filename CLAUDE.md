@@ -6,7 +6,9 @@ the handoff file, or anything under `web/demo/`. Deploy steps are in README.md.
 ## UI decisions (keep these unless the owner says otherwise)
 
 - The wall's bottom bar (to-do strip, people chips, ＋ Add) looks identical in
-  every view. Don't move controls in or out of it per view.
+  every view. Don't move controls in or out of it per view. One exception: the
+  To-dos view hides the to-do strip, since the page is already the to-do list;
+  the chips and ＋ Add stay where they are.
 - Views and secondary features (Calendar, People, To-dos, Routines, Grocery,
   plus Refresh and Settings) go in the side panel (`#rail`) on the
   right edge, not as new bottom-bar buttons. The right side keeps a clean left

@@ -539,6 +539,7 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 #app.view-people .main, #app.view-todos .main, #app.view-sched .main { grid-template-columns: minmax(0, 1fr); }
 #app.view-people .now-wrap, #app.view-people .week-wrap, #app.view-todos .now-wrap, #app.view-todos .week-wrap, #app.view-sched .now-wrap, #app.view-sched .week-wrap { display: none; }
 #app.view-people .alt, #app.view-todos .alt, #app.view-sched .alt { display: flex; }
+#app.view-todos .todos-wrap { display: none; }  /* the view is the to-do list: no strip (chips and Add stay put) */
 
 
 /* people columns */
