@@ -484,6 +484,21 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.id === 'gr-input') { e.preventDefault(); groceryAdd(); }
 });
 
+// iPad Safari covers fixed elements with the on-screen keyboard instead of
+// shrinking them. Track the visible area so open sheets fit above the keyboard.
+if (window.visualViewport) {
+  const vv = window.visualViewport, root = document.documentElement;
+  const fitKeyboard = () => {
+    const open = vv.scale < 1.05 && root.clientHeight - vv.height > 120;
+    root.style.setProperty('--vv-h', vv.height + 'px');
+    root.style.setProperty('--vv-top', vv.offsetTop + 'px');
+    document.body.classList.toggle('kb-open', open);
+  };
+  vv.addEventListener('resize', fitKeyboard);
+  vv.addEventListener('scroll', fitKeyboard);
+  fitKeyboard();
+}
+
 // ---------------------------------------------------------------- quick add
 function openAdd(type = 'event') {
   const filterPerson = ui.filter !== 'all' ? [ui.filter] : [];

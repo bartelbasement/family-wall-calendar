@@ -495,6 +495,14 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 .gr-clear { text-transform: none; letter-spacing: 0; font-size: .9rem; border: 1px solid var(--line); border-radius: 1.2rem; padding: .35rem .8rem; min-height: 2.4rem; color: var(--text); }
 .gr-empty { color: var(--muted); text-align: center; margin: 2rem 0; }
 .gr-sheet .gr-list { max-height: 60dvh; overflow-y: auto; }
+/* Keyboard up (iPad): fit the scrim to the visible area above the keyboard.
+   The grocery sheet keeps its add box in view and scrolls just the list. */
+.kb-open .scrim { top: var(--vv-top); bottom: auto; height: var(--vv-h); }
+.kb-open .sheet { max-height: calc(var(--vv-h) - 2rem); }
+.is-phone.kb-open .sheet { max-height: var(--vv-h); }
+.kb-open .gr-sheet { display: flex; flex-direction: column; overflow: hidden; }
+.kb-open .gr-sheet .gr { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.kb-open .gr-sheet .gr-list { max-height: none; flex: 1; min-height: 0; }
 .ph-tabs { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 1fr; }
 .ph-tab .count.muted { background: var(--muted); }
 .tab-grocery .ph-chips { display: none; }
