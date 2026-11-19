@@ -57,6 +57,7 @@ export function bannerHtml(items, filter) {
 
 // ---------------------------------------------------------------- now column
 /** A timed event is over at its end, or 1 h after its start if it has no end. */
+const NOW_TODOS = 3; // to-dos listed under Today before "+N more"
 const isOver = (x, tMs) => !x.allDay && Date.parse(x.end || x.start) + (x.end ? 0 : 3600e3) <= tMs;
 
 export function nowHtml(items, filter, ctx) {
@@ -80,9 +81,20 @@ export function nowHtml(items, filter, ctx) {
       `<button class="chip-ad p-${bandCode(x.people)}" data-id="${esc(x.id)}">${esc(x.title)}</button>`).join('')}</div>`;
   }
 
+  // To-dos due today or overdue (oldest first), under the events in the same scrolling list.
+  const due = items.filter((x) => x.section === 'todo' && !x.done && x.date && x.date <= today && visible(x, filter))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const dueHtml = !due.length ? '' : `<div class="now-h now-due-h">To-do</div>` + due.slice(0, NOW_TODOS).map((x) => {
+    const pending = ctx.pending && ctx.pending.has(x.id);
+    return `<button class="now-todo p-${bandCode(x.people)}${pending ? ' pending' : ''}" data-id="${esc(x.id)}">
+      <span class="ti">☐ ${esc(x.title)}</span>${x.date < today ? `<span class="flag">Overdue</span>` : ''}
+    </button>`;
+  }).join('') + (due.length > NOW_TODOS ? `<div class="now-more">+${due.length - NOW_TODOS} more in To-do below</div>` : '');
+
   html += `<div class="now-h">Today</div>`;
   if (earlier) html += `<button class="now-earlier" data-day="${today}">Earlier today · ${earlier} <span aria-hidden="true">›</span></button>`;
-  if (shown.length) {
+  if (shown.length || due.length) {
+    if (!shown.length) html += `<div class="now-empty">Nothing else today.</div>`;
     html += `<div class="now-list">` + shown.map((x, i) => {
       const ongoing = Date.parse(x.start) <= t.getTime();
       const sub = [x.note, x.location].filter(Boolean)[0];
@@ -91,7 +103,7 @@ export function nowHtml(items, filter, ctx) {
         <span class="ti">${esc(x.title)} ${badges(x.people, ctx)}</span>
         ${sub ? `<span class="sub">${esc(sub)}</span>` : ''}
       </button>`;
-    }).join('') + `</div>`;
+    }).join('') + dueHtml + `</div>`;
   } else {
     // Nothing left today: preview the next day with events.
     html += `<div class="now-empty">Nothing else today.</div>`;

@@ -105,6 +105,15 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .now-item .sub { grid-column: 2; font-size: 1.05rem; opacity: .9; }
 .now-item.ongoing .tm::after { content: 'now'; display: block; font-size: .7em; font-weight: 600; opacity: .8; }
 .now-item.next { outline: .2rem solid var(--bd-p); outline-offset: -.1rem; }
+/* to-dos due today or overdue, under Today's events: the shared to-do style (dashed, person colour) */
+.now-list .now-due-h { margin: .55rem 0 0; }
+.now-todo {
+  display: flex; align-items: baseline; gap: .6rem; width: 100%; text-align: left; color: var(--text);
+  border: 1px dashed var(--bd-p); border-left: .45rem solid var(--bd-p); border-radius: .3rem .7rem .7rem .3rem; padding: .45rem .8rem;
+}
+.now-todo .ti { flex: 1; min-width: 0; font-family: var(--font-head); font-size: 1.25rem; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+.now-todo .flag { flex: none; font-size: .8rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--alert-tx); }
+.now-todo.pending .ti { text-decoration: line-through; opacity: .6; }
 .now-more, .now-empty { font-size: 1.15rem; color: var(--muted); margin-top: .4rem; }
 .now-earlier { align-self: flex-start; margin: -.15rem 0 .5rem; padding: .35rem .8rem; border-radius: 1rem; border: 1px solid var(--line); font-size: 1rem; font-weight: 600; color: var(--muted); }
 
