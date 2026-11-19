@@ -2,7 +2,8 @@
    serif headings. Inspired by Jillian Harris's light-and-airy, classic style.
    js/look.js sets data-look="linen" on <html> when this screen picked Linen
    (Settings › Display), except on the night screen, and data-tone="light|dark" from
-   the current theme. Layout is untouched: only colours, type and shape details change.
+   the current theme. Layout is untouched: only colours, type and shape details change. Colours and fonts are
+   tokens (css/app.css :root); a new look sets the same tokens and gets every screen.
    Person colours come from LOOK_SWATCHES in js/theme.js; the --S/--R/... values here
    are only fallbacks until those load. */
 
@@ -49,64 +50,20 @@
   --emoji: saturate(.5) sepia(.25) brightness(.92);
 }
 
-/* ---------- type ---------- */
-[data-look="linen"] .clock { font-family: var(--font-display); font-weight: 400; letter-spacing: -.01em; }
-[data-look="linen"] .clock .ampm { font-family: var(--font-body); letter-spacing: .08em; }
-[data-look="linen"] .date,
-[data-look="linen"] .sheet h3 { font-family: var(--font-head); font-weight: 400; letter-spacing: .01em; }
-[data-look="linen"] .day-h .num { font-family: var(--font-head); font-weight: 400; }
-/* event, to-do and routine titles in the serif too; times stay sans */
-[data-look="linen"] .now-item .ti,
-[data-look="linen"] .pill .ti,
-[data-look="linen"] .todo .ti,
-[data-look="linen"] .pc-item .ti,
-[data-look="linen"] .ag-ti,
-[data-look="linen"] .ph-date,
-[data-look="linen"] .tv-item .ti { font-family: var(--font-head); }  /* not .sc-ev: Timeline labels are too small for a serif */
-/* small capital labels (TODAY, TO-DO, day names, sheet headings): spaced serif */
-[data-look="linen"] .now-h,
-[data-look="linen"] .todos-h,
-[data-look="linen"] .day-h .dow,
-[data-look="linen"] .ag-name,
-[data-look="linen"] .add-h { font-family: var(--font-head); font-weight: 600; letter-spacing: .14em; }
-/* bottom bar, side panel labels and the alert banner */
-[data-look="linen"] .chip,
-[data-look="linen"] .add-btn,
-[data-look="linen"] .rail-btn .rl,
-[data-look="linen"] .done-btn { font-family: var(--font-head); }
+/* ---------- type ----------
+   The roles are in css/app.css (:root, TYPE ROLES): the serif goes to titles, names, buttons and labels, times and
+   counts stay sans, and Timeline event labels stay sans because they're too small for a serif. Set here: */
+:root[data-look="linen"] {
+  --display-weight: 400; --display-spacing: -.01em; --ampm-spacing: .08em;   /* the clock */
+  --heading-weight: 400; --heading-spacing: .01em;                           /* date, sheet titles, day numbers */
+  --label-weight: 600; --label-spacing: .14em;                               /* small capital labels: spaced serif */
+}
+/* fine tuning: a lighter weight where the serif reads heavy */
 [data-look="linen"] .add-btn { font-weight: 600; letter-spacing: .02em; }
-[data-look="linen"] .banner { font-family: var(--font-head); font-weight: 400; border-left-width: .25rem; }
-/* the other views and sheets (People, Timeline, To-dos, Routines, Grocery, Add, Settings): same rules - titles,
-   names, buttons and labels in the serif; times, counts and the small Timeline event labels stay sans */
-[data-look="linen"] .chip-ad,
-[data-look="linen"] .opt,
-[data-look="linen"] .add-title,
-[data-look="linen"] .pc-name,
-[data-look="linen"] .tv-seg .opt,
-[data-look="linen"] .tv-add,
-[data-look="linen"] .tv-others,
-[data-look="linen"] .sc-dh .dn,
-[data-look="linen"] .sc-dh .dd,
-[data-look="linen"] .sc-chip,
-[data-look="linen"] .rt-name,
-[data-look="linen"] .rt-tx,
-[data-look="linen"] .rt-done,
-[data-look="linen"] .pt-ti,
-[data-look="linen"] .gr-name,
-[data-look="linen"] #gr-input,
-[data-look="linen"] .gr-add-btn,
-[data-look="linen"] .gr-clear,
-[data-look="linen"] .menu-item .mi,
-[data-look="linen"] .ph-tab,
-[data-look="linen"] .set-label,
-[data-look="linen"] .rv-empty { font-family: var(--font-head); }
+[data-look="linen"] .banner { font-weight: 400; border-left-width: .25rem; }
 [data-look="linen"] .pc-name,
 [data-look="linen"] .rt-name,
 [data-look="linen"] .sc-dh .dn { font-weight: 600; }
-[data-look="linen"] .rt-name small { font-family: var(--font-body); }   /* who · when line stays sans, like times */
-/* column and day labels (TOMORROW, Overdue & today, Done): spaced serif like the week's day names */
-[data-look="linen"] .pc-dh,
-[data-look="linen"] .gr-done-h { font-family: var(--font-head); font-weight: 600; letter-spacing: .08em; }
 
 /* ---------- shapes ---------- */
 [data-look="linen"] .day { border: 1px solid var(--line); border-radius: .9rem; }
