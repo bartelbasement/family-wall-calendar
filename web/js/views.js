@@ -46,7 +46,7 @@ export function menuSheetHtml(st) {
  */
 export function railHtml(view, open, st, gro, todos, rtn) {
   const btn = (attrs, ic, label, sub, cls = '', badge = '') =>
-    `<button class="rail-btn${cls}" ${attrs} aria-label="${label}" title="${label}"><span class="ic">${ic}${badge}</span>` +
+    `<button class="rail-btn${cls}" ${attrs} aria-label="${label}" title="${label}"><span class="ic"><span class="em">${ic}</span>${badge}</span>` +
     `<span class="rl">${label}${sub ? `<small>${sub}</small>` : ''}</span></button>`;
   const nav = (v, ic, label, sub = '', badge = '') => btn(`data-view="${v}"${view === v ? ' aria-current="page"' : ''}`, ic, label, sub, view === v ? ' on' : '', badge);
   return `<div class="rail-top">

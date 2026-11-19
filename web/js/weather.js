@@ -89,7 +89,7 @@ export function dayWx(weather, ymd) {
   if (!d) return '';
   const [icon, , label] = lookup(d.code);
   const rain = d.pop != null && d.pop >= 40 ? ` · ${d.pop}% rain` : '';
-  return `<span class="wx" title="${esc(label + rain)}">${icon} ${deg(d.hi)}<span class="lo">/${deg(d.lo)}</span></span>`;
+  return `<span class="wx" title="${esc(label + rain)}"><span class="wx-em">${icon}</span> ${deg(d.hi)}<span class="lo">/${deg(d.lo)}</span></span>`;
 }
 
 /** Wall "Now" column: current temperature plus today's high/low and rain chance. */

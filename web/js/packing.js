@@ -119,7 +119,7 @@ export function packSheetHtml(list, st, people) {
       <button class="opt" data-pack-leave="" ${sel(!st.leave)}>No date</button>
       ${leaveChoices().map((c) => `<button class="opt" data-pack-leave="${c.ymd}" ${sel(st.leave === c.ymd)}>${c.label}</button>`).join('')}
     </div>
-    ${st.error ? `<div class="alert-line" style="margin-top:.7rem">${esc(st.error)}</div>` : ''}
+    ${st.error ? `<div class="alert-line gap-top">${esc(st.error)}</div>` : ''}
     <div class="who-actions">
       <button class="opt" data-close>Cancel</button>
       <button class="done-btn" data-pack-go ${st.saving || !st.people.length ? 'disabled' : ''}>${st.saving ? 'Starting…' : st.people.length > 1 ? `Start ${st.people.length} lists` : 'Start packing'}</button>

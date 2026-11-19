@@ -191,7 +191,7 @@ function whoHtml(x, ctx, edit, people) {
     <div class="add-h">Who is this for?</div>
     <div class="opts">${retagChoices(x, people).map((p) => `<button class="opt who-opt" data-who-pick="${p.code}" ${sel(edit.pick.includes(p.code))}>
       <span class="badge p-${p.code}">${esc(p.badge || p.code)}</span>${esc(p.name)}</button>`).join('')}</div>
-    ${edit.error ? `<div class="alert-line" style="margin-top:.7rem">${esc(edit.error)}</div>` : ''}
+    ${edit.error ? `<div class="alert-line gap-top">${esc(edit.error)}</div>` : ''}
     <div class="who-actions">
       <button class="opt" data-who-cancel ${edit.saving ? 'disabled' : ''}>Cancel</button>
       <button class="done-btn" data-who-save ${edit.saving || !edit.pick.length ? 'disabled' : ''}>${edit.saving ? 'Saving…' : 'Save'}</button>
@@ -236,7 +236,7 @@ export function daySheetHtml(items, day, filter, ctx) {
   return `<div class="sheet" role="dialog" aria-modal="true">
     <button class="close" data-close aria-label="Close">✕</button>
     <h3>${esc(longDateLabel(day))}</h3>
-    ${icons.map((x) => `<p style="font-size:1.15rem;margin:.2rem 0 .8rem">${esc(x.icon)} ${esc(x.title)}</p>`).join('')}
+    ${icons.map((x) => `<p class="day-icon">${esc(x.icon)} ${esc(x.title)}</p>`).join('')}
     <div class="day-list">${evs.map((x) => pillHtml(x, ctx, day === todayYmd() && isOver(x, now().getTime()))).join('') || '<p>Nothing scheduled.</p>'}</div>
     ${todos.length ? `<div class="now-h">Due this day</div><div class="day-list">${todos.map((x) =>
       `<button class="pill p-${bandCode(x.people)}" data-id="${esc(x.id)}"><span class="ti">☐ ${esc(x.title)}</span></button>`).join('')}</div>` : ''}
@@ -345,7 +345,7 @@ export function addSheetHtml(f, people) {
     <input id="add-title" class="add-title" type="text" maxlength="120" autocomplete="off" enterkeyhint="done"
       placeholder="${isEvent ? 'e.g. Pizza night' : 'e.g. Bring gym strip'}  (tap 🎤 on the keyboard to talk)" value="${esc(f.title)}">
 
-    ${f.error ? `<div class="alert-line" style="margin-top:.8rem">${esc(f.error)}</div>` : ''}
+    ${f.error ? `<div class="alert-line gap-top">${esc(f.error)}</div>` : ''}
     <button class="done-btn" data-add-submit ${canSave ? '' : 'disabled'}>${f.saving ? 'Adding…' : isEvent ? 'Add event' : 'Add to-do'}</button>
     <div class="src">${isEvent ? 'Goes to the family Google Calendar' : 'Goes to the Kids’ School Trello board (To Do)'}</div>
   </div>`;
