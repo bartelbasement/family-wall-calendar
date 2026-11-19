@@ -22,6 +22,9 @@ the handoff file, or anything under `web/demo/`. Deploy steps are in README.md.
   the Add sheet's time chooser).
 - Before changing layout, offer options with pros and cons, and plan before
   building.
+- Type comes from roles (`--font-display`, `--font-head`, default `--font-body`;
+  see TYPE ROLES in `web/css/app.css`). A new element picks a role; a look only
+  sets the role tokens, never a list of elements.
 
 ## Testing layout changes
 
