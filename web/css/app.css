@@ -387,6 +387,7 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 }
 .ag-row.past { opacity: .5; }
 .ag-tm { font-size: .85rem; font-weight: 700; padding-top: .1rem; white-space: nowrap; }
+.ag-tm.wrap { white-space: normal; line-height: 1.2; }
 .ag-main { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
 .ag-ti { font-size: 1rem; font-weight: 600; overflow-wrap: anywhere; }
 .ag-ti .chg { color: var(--bd-p); margin-right: .25rem; }

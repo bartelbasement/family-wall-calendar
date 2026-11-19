@@ -21,7 +21,7 @@ function rowHtml(x, ctx, past) {
   const tm = x.allDay ? (x.whenLabel || 'All day') : timeLabel(x.start);
   const sub = [x.note, x.location].filter(Boolean)[0];
   return `<button class="ag-row p-${bandCode(x.people)}${past ? ' past' : ''}" data-id="${esc(x.id)}">
-    <span class="ag-tm">${esc(tm)}</span>
+    <span class="ag-tm${x.allDay && x.whenLabel ? ' wrap' : ''}">${esc(tm)}</span>
     <span class="ag-main">
       <span class="ag-ti">${x.change ? '<span class="chg">✦</span>' : ''}${esc(x.title)}</span>
       <span class="ag-sub">${badges(x.people, ctx)}${sub ? ` <span class="ag-note">${esc(sub)}</span>` : ''}</span>
