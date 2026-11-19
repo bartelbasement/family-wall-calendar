@@ -121,10 +121,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 /* ---------- Week grid ---------- */
 .week-wrap { position: relative; min-height: 0; display: flex; container: week / inline-size; }
-/* More days fit as the column widens (about 9.5rem a day, so the iPad keeps 4). */
-@container week (min-width: 48rem) { .week-wrap .week { --days: 5; } }
-@container week (min-width: 58rem) { .week-wrap .week { --days: 6; } }
-@container week (min-width: 68rem) { .week-wrap .week { --days: 7; } }
+/* 4 days, or 6 when they fit (about 8rem each): Today plus 6 makes a full week. The iPad (about 37rem) keeps 4. */
+@container week (min-width: 50rem) { .week-wrap .week { --days: 6; } }
 .week {
   --days: 4; --gap: .45rem;
   flex: 1; display: grid; grid-auto-flow: column; gap: var(--gap); min-height: 0;

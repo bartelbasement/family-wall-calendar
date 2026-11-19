@@ -12,8 +12,9 @@ the handoff file, or anything under `web/demo/`. Deploy steps are in README.md.
   Calendar view moves the strip into a third column beside the week
   (`placeTodos()` in `web/js/app.js`). The chips and ＋ Add always stay where
   they are.
-- Wider screens show more days in the Calendar and Timeline (container queries
-  in `web/css/app.css`). The iPad stays at 4.
+- Wider screens show more days, but only counts that read as a week (container
+  queries in `web/css/app.css`): the Calendar's week strip shows 4 or 6 (Today
+  plus 6 is a full week), the Timeline 4, 5 or 7. The iPad stays at 4.
 - Views and secondary features (Calendar, People, To-dos, Routines, Grocery,
   plus Refresh and Settings) go in the side panel (`#rail`) on the
   right edge, not as new bottom-bar buttons. The right side keeps a clean left
