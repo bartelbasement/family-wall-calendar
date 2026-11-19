@@ -1,6 +1,7 @@
 import { getKey, apiPost } from './api.js?v=__V__';
 import { createSettings } from './settings.js?v=__V__';
 import { applyPeopleColors } from './theme.js?v=__V__';
+import { applyLook, getAppearance } from './look.js?v=__V__';
 import { createStore } from './store.js?v=__V__';
 import { getMode } from './mode.js?v=__V__';
 import { startKiosk } from './kiosk.js?v=__V__';
@@ -65,6 +66,7 @@ function setMenuStyle(style) {
   ui.rail = false; ui.sheet = null;
   render();
 }
+window.addEventListener('wall-appearance', () => applyTheme(isNight())); // Appearance changed in Settings
 const VIEWS = ['week', 'people', 'todos', 'routines', 'sched'];
 const WALL_VIEWS = VIEWS; // every view is offered on the wall's side panel
 try { if (!mode.kiosk) ui.filter = localStorage.getItem('wall-filter') || 'all'; } catch (e) { /* ignore */ }
@@ -107,7 +109,9 @@ function applyTheme(night) {
   if (night) root.dataset.theme = 'night';
   else if (themeParam === 'light' || themeParam === 'dark') root.dataset.theme = themeParam;
   else if (mode.kiosk && isNightHours()) root.dataset.theme = 'dark'; // woken at night: stay dark
+  else if (getAppearance() !== 'system') root.dataset.theme = getAppearance(); // Settings › Display, this screen
   else delete root.dataset.theme;
+  applyLook(); // marks the look and light/dark tone
 }
 function isNightHours() {
   const p = parts(now()); const m = p.h * 60 + p.mi;

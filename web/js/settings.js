@@ -1,7 +1,8 @@
 // Parent settings: PIN pad, then Calendars / People / Display tabs.
 // Renders into #scrim; app.js forwards clicks, inputs and changes while open.
 import { apiPost } from './api.js?v=__V__';
-import { SWATCHES, DEFAULTS } from './theme.js?v=__V__';
+import { SWATCHES, DEFAULTS, swatchColors } from './theme.js?v=__V__';
+import { LOOKS, getLook, setLook, APPEARANCES, getAppearance, setAppearance } from './look.js?v=__V__';
 import { esc } from './render.js?v=__V__';
 import { keepScroll } from './dom.js?v=__V__';
 import { leaveLabel, showStatus, listShown } from './packing.js?v=__V__';
@@ -38,8 +39,8 @@ const fromEditor = (list) => list.map((r) => ({
 
 /** Inline colour variables so a row previews its chosen swatch before saving. */
 function swatchVars(name) {
-  const sw = SWATCHES[name] || SWATCHES.slate;
-  return `--bg-p:${sw.l[0]};--tx-p:${sw.l[1]};--bd-p:${sw.l[2]}`;
+  const [bg, tx, bd] = swatchColors(name);
+  return `--bg-p:${bg};--tx-p:${tx};--bd-p:${bd}`;
 }
 
 export function createSettings({ demo, getSnap, onSaved, onClose }) {
@@ -101,7 +102,7 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
             <input class="badge-in" data-set-person="${i}" data-field="badge" value="${esc(p.badge)}" maxlength="4" aria-label="Badge">
             <input class="name-in" data-set-person="${i}" data-field="name" value="${esc(p.name)}" maxlength="24" aria-label="Name">
           </div>
-          <div class="swatches">${s.swatches.map((w) => `<button class="sw${p.swatch === w ? ' on' : ''}" data-set-swatch="${i}" data-swatch="${w}" style="background:${SWATCHES[w].l[2]}" aria-label="${w}"></button>`).join('')}</div>
+          <div class="swatches">${s.swatches.map((w) => `<button class="sw${p.swatch === w ? ' on' : ''}" data-set-swatch="${i}" data-swatch="${w}" style="background:${swatchColors(w)[2]}" aria-label="${w}"></button>`).join('')}</div>
           ${p.code === 'F' ? '' : `<label class="kw">Keywords <input data-set-person="${i}" data-field="keywords" value="${esc(p.keywords.join(', '))}" placeholder="e.g. volleyball, wildcats"></label>`}
         </div>`).join('');
     } else if (s.tab === 'routines') {
@@ -181,6 +182,14 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
         <div class="set-row">
           <div class="set-label">Go back to the home screen after</div>
           <div class="opts">${IDLE_CHOICES.map((m) => `<button class="opt" data-set-idle="${m}" aria-pressed="${Number(o.idleMinutes) === m}">${m} min</button>`).join('')}</div>
+        </div>
+        <div class="set-row">
+          <div class="set-label">Appearance on this screen (changes right away)</div>
+          <div class="opts">${APPEARANCES.map(([k, v]) => `<button class="opt" data-set-appearance="${k}" aria-pressed="${getAppearance() === k}">${v}</button>`).join('')}</div>
+        </div>
+        <div class="set-row">
+          <div class="set-label">Look on this screen (changes right away)</div>
+          <div class="opts">${LOOKS.map(([k, v]) => `<button class="opt" data-set-look="${k}" aria-pressed="${getLook() === k}">${v}</button>`).join('')}</div>
         </div>`;
     }
     return `<div class="sheet set-sheet" role="dialog" aria-modal="true" aria-label="Settings">
@@ -366,6 +375,10 @@ export function createSettings({ demo, getSnap, onSaved, onClose }) {
       }
       const tf = t.closest('[data-set-trip-flag]');
       if (tf && s.data.trips) { const tr = s.data.trips[+tf.dataset.setTripFlag]; tr[tf.dataset.flag] = !tr[tf.dataset.flag]; draw(); return true; }
+      const lk = t.closest('[data-set-look]');
+      if (lk) { setLook(lk.dataset.setLook); draw(true); return true; }
+      const ap = t.closest('[data-set-appearance]');
+      if (ap) { setAppearance(ap.dataset.setAppearance); draw(true); return true; }
       const idle = t.closest('[data-set-idle]');
       if (idle) { s.data.options.idleMinutes = Number(idle.dataset.setIdle); draw(); return true; }
       if (t.closest('[data-set-save]')) { if (s.stage === 'edit') save(); return true; }

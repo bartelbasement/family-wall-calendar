@@ -1,0 +1,98 @@
+/* "Linen" look: cream and linen, sage for today, brick for alerts, brass hairlines,
+   serif headings. Inspired by Jillian Harris's light-and-airy, classic style.
+   js/look.js sets data-look="linen" on <html> when this screen picked Linen
+   (Settings › Display), except on the night screen, and data-tone="light|dark" from
+   the current theme. Layout is untouched: only colours, type and shape details change.
+   Person colours come from LOOK_SWATCHES in js/theme.js; the --S/--R/... values here
+   are only fallbacks until those load. */
+
+:root[data-look="linen"] {
+  --font-display: "Didot", "Bodoni 72", "Playfair Display", Georgia, serif;   /* web-font backups: js/look.js */
+  --font-head: "Baskerville", "Baskervville", Georgia, serif;
+  --on-accent: #fff;
+}
+
+:root[data-look="linen"][data-tone="light"] {
+  --bg: #FBF8F3; --surface: #F3EDE4; --surface-2: #EAE2D6; --text: #3A332C; --muted: #74685C; --line: #DDD3C5;
+  --today-bg: #E3EBDD; --today-tx: #3F5A3A; --off-bg: #F6E6E1; --off-tx: #8A3A2E;
+  --alert-bg: #F6E6E1; --alert-tx: #8A3A2E; --alert-bd: #B5523F;
+  --stale-bg: #F4EAD5; --stale-tx: #6B4E1E;
+  --shadow: 0 12px 40px rgba(90,70,50,.16);
+  --scrim: rgba(58,51,44,.35); --rail-scrim: rgba(58,51,44,.22); --rail-shadow: 0 0 2rem rgba(90,70,50,.2);
+  --toast-bg: #3A332C; --toast-tx: #FBF8F3; --toast-bar: #A9B89A; --toast-err: #8A3A2E;
+  --S-bg: #EEEAF3; --S-tx: #4A3F5E; --S-bd: #7D6E96;
+  --R-bg: #E7ECE0; --R-tx: #3B5034; --R-bd: #6B8460;
+  --C-bg: #F5EBD8; --C-tx: #664A1C; --C-bd: #A57B3A;
+  --A-bg: #F5E5DF; --A-tx: #7A3427; --A-bd: #AD5D48;
+  --F-bg: #ECE9E3; --F-tx: #48433C; --F-bd: #837A6E;
+  --accent: #B08D57;   /* brass: hairlines and small details only (too light for text) */
+  --strong: #566A4B; --on-strong: #FBF8F3;   /* deep sage fills instead of near-black */
+  --emoji: saturate(.5) sepia(.25);
+}
+
+/* Dark Linen: espresso and walnut instead of grey, same muted accents. */
+:root[data-look="linen"][data-tone="dark"] {
+  --bg: #1E1A16; --surface: #29241F; --surface-2: #342E28; --text: #F2EBE0; --muted: #B8AC9C; --line: #463E35;
+  --today-bg: #2F3D2C; --today-tx: #DCE8D3; --off-bg: #4A2620; --off-tx: #F6DED6;
+  --alert-bg: #4A2620; --alert-tx: #F6DED6; --alert-bd: #C2654F;
+  --stale-bg: #4A3818; --stale-tx: #F4E6C8;
+  --shadow: 0 12px 40px rgba(0,0,0,.55);
+  --scrim: rgba(0,0,0,.5); --rail-scrim: rgba(0,0,0,.35); --rail-shadow: 0 0 2rem rgba(0,0,0,.5);
+  --toast-bg: #F2EBE0; --toast-tx: #2A241F; --toast-bar: #6B8460; --toast-err: #8A3A2E;
+  --S-bg: #36304A; --S-tx: #E6E0F0; --S-bd: #7D6E96;
+  --R-bg: #2E3A29; --R-tx: #DFE8D6; --R-bd: #6B8460;
+  --C-bg: #43361F; --C-tx: #F3E6CC; --C-bd: #A57B3A;
+  --A-bg: #4A2A22; --A-tx: #F5DDD5; --A-bd: #AD5D48;
+  --F-bg: #36322D; --F-tx: #E8E3DB; --F-bd: #837A6E;
+  --accent: #C2A06A;
+  --strong: #B9C8A9; --on-strong: #1E1A16;   /* pale sage fills */
+  --emoji: saturate(.5) sepia(.25) brightness(.92);
+}
+
+/* ---------- type ---------- */
+[data-look="linen"] .clock { font-family: var(--font-display); font-weight: 400; letter-spacing: -.01em; }
+[data-look="linen"] .clock .ampm { font-family: var(--font-body); letter-spacing: .08em; }
+[data-look="linen"] .date,
+[data-look="linen"] .sheet h3 { font-family: var(--font-head); font-weight: 400; letter-spacing: .01em; }
+[data-look="linen"] .day-h .num { font-family: var(--font-head); font-weight: 400; }
+/* event, to-do and routine titles in the serif too; times stay sans */
+[data-look="linen"] .now-item .ti,
+[data-look="linen"] .pill .ti,
+[data-look="linen"] .todo .ti,
+[data-look="linen"] .pc-item .ti,
+[data-look="linen"] .ag-ti,
+[data-look="linen"] .ph-date,
+[data-look="linen"] .tv-item .ti { font-family: var(--font-head); }  /* not .sc-ev: Timeline labels are too small for a serif */
+/* small capital labels (TODAY, TO-DO, day names, sheet headings): spaced serif */
+[data-look="linen"] .now-h,
+[data-look="linen"] .todos-h,
+[data-look="linen"] .day-h .dow,
+[data-look="linen"] .ag-name,
+[data-look="linen"] .add-h { font-family: var(--font-head); font-weight: 600; letter-spacing: .14em; }
+/* bottom bar, side panel labels and the alert banner */
+[data-look="linen"] .chip,
+[data-look="linen"] .add-btn,
+[data-look="linen"] .rail-btn .rl,
+[data-look="linen"] .done-btn { font-family: var(--font-head); }
+[data-look="linen"] .add-btn { font-weight: 600; letter-spacing: .02em; }
+[data-look="linen"] .banner { font-family: var(--font-head); font-weight: 400; border-left-width: .25rem; }
+
+/* ---------- shapes ---------- */
+[data-look="linen"] .day { border: 1px solid var(--line); border-radius: .9rem; }
+[data-look="linen"] .day.today { border-color: var(--accent); }
+[data-look="linen"] .now-item { border-radius: .3rem .9rem .9rem .3rem; }
+[data-look="linen"] .pill { border-radius: .25rem .6rem .6rem .25rem; }
+[data-look="linen"] .sheet { border-radius: 1.3rem; border: 1px solid var(--line); }
+[data-look="linen"] .sheet .band { border-radius: 1.3rem 1.3rem 0 0; }
+[data-look="linen"] .chip { border-color: var(--accent); }
+[data-look="linen"] .banner { border-radius: .9rem; }
+
+/* ---------- muted emoji (side panel, weather, day icons) ---------- */
+[data-look="linen"] .rail-btn .em,
+[data-look="linen"] .ph-tab:not(.ph-add) .ic,
+[data-look="linen"] .wx-ic,
+[data-look="linen"] .wx-em,
+[data-look="linen"] .day-h .icons,
+[data-look="linen"] .ag-icons,
+[data-look="linen"] .date-icons { filter: var(--emoji); }
+[data-look="linen"] .ph-tab:not(.ph-add):not([aria-current="page"]) .ic { filter: grayscale(1); }
