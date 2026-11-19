@@ -76,8 +76,8 @@
 [data-look="linen"] .done-btn { font-family: var(--font-head); }
 [data-look="linen"] .add-btn { font-weight: 600; letter-spacing: .02em; }
 [data-look="linen"] .banner { font-family: var(--font-head); font-weight: 400; border-left-width: .25rem; }
-/* the other views and sheets (People, Timeline, To-dos, Routines, Grocery, Add, Settings): same rules, titles
-   and labels in the serif, times and counts stay sans */
+/* the other views and sheets (People, Timeline, To-dos, Routines, Grocery, Add, Settings): same rules - titles,
+   names, buttons and labels in the serif; times, counts and the small Timeline event labels stay sans */
 [data-look="linen"] .chip-ad,
 [data-look="linen"] .opt,
 [data-look="linen"] .add-title,
@@ -88,7 +88,6 @@
 [data-look="linen"] .sc-dh .dn,
 [data-look="linen"] .sc-dh .dd,
 [data-look="linen"] .sc-chip,
-[data-look="linen"] .sc-ev .ti,
 [data-look="linen"] .rt-name,
 [data-look="linen"] .rt-tx,
 [data-look="linen"] .rt-done,
