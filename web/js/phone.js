@@ -35,7 +35,9 @@ export function agendaHtml(items, filter, ctx) {
   for (let i = 0; i <= AGENDA_DAYS; i++) {
     const d = addDays(today, i);
     const evs = eventsOn(items, d).filter((x) => visible(x, filter));
-    const todos = items.filter((x) => x.section === 'todo' && !x.done && x.date === d && visible(x, filter));
+    // Today also lists overdue to-dos (oldest first), as the wall's Today column does.
+    const todos = items.filter((x) => x.section === 'todo' && !x.done && x.date && (i === 0 ? x.date <= d : x.date === d) && visible(x, filter))
+      .sort((a, b) => a.date.localeCompare(b.date));
     const icons = items.filter((x) => x.display === 'icon' && x.date === d);
     const off = items.some((x) => x.offDay && x.date && d >= x.date && d <= (x.endDate || x.date));
     // Today and tomorrow always show; later days only when something is on.
@@ -52,7 +54,7 @@ export function agendaHtml(items, filter, ctx) {
       ${evs.map((x) => rowHtml(x, ctx, i === 0 && !x.allDay && Date.parse(x.end || x.start) < tNow)).join('')}
       ${todos.map((x) => `<button class="ag-row ag-todo p-${bandCode(x.people)}" data-id="${esc(x.id)}">
         <span class="ag-tm">☐ Due</span>
-        <span class="ag-main"><span class="ag-ti">${esc(x.title)}</span><span class="ag-sub">${badges(x.people, ctx)}</span></span>
+        <span class="ag-main"><span class="ag-ti">${esc(x.title)}</span><span class="ag-sub">${badges(x.people, ctx)}${x.date < d ? ` <span class="overdue">Overdue · ${esc(dayLabel(x.date))}</span>` : ''}</span></span>
       </button>`).join('')}
       ${!evs.length && !todos.length ? `<p class="ag-free">${off ? 'No school' : 'Nothing scheduled'}</p>` : ''}
     </section>`;
