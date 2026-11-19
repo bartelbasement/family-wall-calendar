@@ -76,6 +76,38 @@
 [data-look="linen"] .done-btn { font-family: var(--font-head); }
 [data-look="linen"] .add-btn { font-weight: 600; letter-spacing: .02em; }
 [data-look="linen"] .banner { font-family: var(--font-head); font-weight: 400; border-left-width: .25rem; }
+/* the other views and sheets (People, Timeline, To-dos, Routines, Grocery, Add, Settings): same rules, titles
+   and labels in the serif, times and counts stay sans */
+[data-look="linen"] .chip-ad,
+[data-look="linen"] .opt,
+[data-look="linen"] .add-title,
+[data-look="linen"] .pc-name,
+[data-look="linen"] .tv-seg .opt,
+[data-look="linen"] .tv-add,
+[data-look="linen"] .tv-others,
+[data-look="linen"] .sc-dh .dn,
+[data-look="linen"] .sc-dh .dd,
+[data-look="linen"] .sc-chip,
+[data-look="linen"] .sc-ev .ti,
+[data-look="linen"] .rt-name,
+[data-look="linen"] .rt-tx,
+[data-look="linen"] .rt-done,
+[data-look="linen"] .pt-ti,
+[data-look="linen"] .gr-name,
+[data-look="linen"] #gr-input,
+[data-look="linen"] .gr-add-btn,
+[data-look="linen"] .gr-clear,
+[data-look="linen"] .menu-item .mi,
+[data-look="linen"] .ph-tab,
+[data-look="linen"] .set-label,
+[data-look="linen"] .rv-empty { font-family: var(--font-head); }
+[data-look="linen"] .pc-name,
+[data-look="linen"] .rt-name,
+[data-look="linen"] .sc-dh .dn { font-weight: 600; }
+[data-look="linen"] .rt-name small { font-family: var(--font-body); }   /* who · when line stays sans, like times */
+/* column and day labels (TOMORROW, Overdue & today, Done): spaced serif like the week's day names */
+[data-look="linen"] .pc-dh,
+[data-look="linen"] .gr-done-h { font-family: var(--font-head); font-weight: 600; letter-spacing: .08em; }
 
 /* ---------- shapes ---------- */
 [data-look="linen"] .day { border: 1px solid var(--line); border-radius: .9rem; }
@@ -94,5 +126,7 @@
 [data-look="linen"] .wx-em,
 [data-look="linen"] .day-h .icons,
 [data-look="linen"] .ag-icons,
-[data-look="linen"] .date-icons { filter: var(--emoji); }
+[data-look="linen"] .date-icons,
+[data-look="linen"] .rt-ic,
+[data-look="linen"] .opt .ic { filter: var(--emoji); }
 [data-look="linen"] .ph-tab:not(.ph-add):not([aria-current="page"]) .ic { filter: grayscale(1); }
