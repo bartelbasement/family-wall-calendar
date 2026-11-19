@@ -6,9 +6,14 @@ the handoff file, or anything under `web/demo/`. Deploy steps are in README.md.
 ## UI decisions (keep these unless the owner says otherwise)
 
 - The wall's bottom bar (to-do strip, people chips, ＋ Add) looks identical in
-  every view. Don't move controls in or out of it per view. One exception: the
+  every view. Don't move controls in or out of it per view. Two exceptions: the
   To-dos view hides the to-do strip, since the page is already the to-do list;
-  the chips and ＋ Add stay where they are.
+  and on wide screens (85rem or more, i.e. monitors, never the iPad) the
+  Calendar view moves the strip into a third column beside the week
+  (`placeTodos()` in `web/js/app.js`). The chips and ＋ Add always stay where
+  they are.
+- Wider screens show more days in the Calendar and Timeline (container queries
+  in `web/css/app.css`). The iPad stays at 4.
 - Views and secondary features (Calendar, People, To-dos, Routines, Grocery,
   plus Refresh and Settings) go in the side panel (`#rail`) on the
   right edge, not as new bottom-bar buttons. The right side keeps a clean left

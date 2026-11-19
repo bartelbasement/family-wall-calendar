@@ -5,7 +5,7 @@ import { esc, bandCode, badges, eventsOn, visible, ADULTS } from './render.js?v=
 import { dayWx } from './weather.js?v=__V__';
 
 const PEOPLE_DAYS = 7;
-const SCHED_DAYS = 4;
+const SCHED_DAYS = 7; // rendered; CSS shows 4–7 by the width available (.sc-n5+)
 
 function dayName(d, today) {
   if (d === today) return 'Today';
@@ -236,11 +236,11 @@ export function scheduleHtml(items, filter, ctx) {
   const span = (endH - startH) * 60;
   const pct = (m) => ((Math.min(Math.max(m, startH * 60), endH * 60) - startH * 60) / span) * 100;
 
-  const head = days.map((d) => {
+  const head = days.map((d, i) => {
     const off = items.some((x) => x.offDay && x.date && d >= x.date && d <= (x.endDate || x.date));
     const icons = items.filter((x) => x.display === 'icon' && x.date === d).map((x) => x.icon).join(' ');
     const allDay = eventsOn(items, d).filter((x) => x.allDay && visible(x, filter));
-    return `<div class="sc-h${d === today ? ' today' : ''}${off ? ' off' : ''}">
+    return `<div class="sc-h sc-n${i + 1}${d === today ? ' today' : ''}${off ? ' off' : ''}">
       <button class="sc-dh" data-day="${d}"><span class="dn">${esc(dayName(d, today))}</span>${d === today || d === addDays(today, 1) ? `<span class="dd">${esc(dayLabel(d))}</span>` : ''}
         <span class="sc-wx">${dayWx(ctx.weather, d)}${icons ? ' ' + esc(icons) : ''}</span></button>
       <div class="sc-ad">${allDay.map((x) => `<button class="sc-chip p-${bandCode(x.people)}" data-id="${esc(x.id)}">${esc(x.title)}</button>`).join('')}</div>
@@ -260,7 +260,7 @@ export function scheduleHtml(items, filter, ctx) {
         <span class="tm">${timeLabel(e.x.start)}</span> <span class="ti">${esc(e.x.title)}</span></button>`;
     }).join('');
     const nowLine = d === today ? `<i class="sc-now" style="top:${pct(minuteOfDay(new Date(tNow))).toFixed(2)}%"></i>` : '';
-    return `<div class="sc-col${d === today ? ' today' : ''}" style="grid-column:${i + 2}">${evs}${nowLine}</div>`;
+    return `<div class="sc-col sc-n${i + 1}${d === today ? ' today' : ''}" style="grid-column:${i + 2}">${evs}${nowLine}</div>`;
   }).join('');
 
   return `<div class="sched" style="--hours:${endH - startH}">

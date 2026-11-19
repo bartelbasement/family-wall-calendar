@@ -23,7 +23,9 @@
      --label-weight/-spacing; each use has the Classic value as its fallback. New elements: pick a role here. */
   --font-display: var(--font-body);
   --font-head: var(--font-body);
-  font-size: clamp(15px, 1.45vw, 24px);
+  /* Scale by the tighter side, so wide screens (monitors) don't run out of height.
+     1.93vh matches 1.45vw on the 4:3 iPad (1366x1024), which is unchanged. */
+  font-size: clamp(15px, min(1.45vw, 1.93vh), 28px);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -118,7 +120,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .now-earlier { align-self: flex-start; margin: -.15rem 0 .5rem; padding: .35rem .8rem; border-radius: 1rem; border: 1px solid var(--line); font-size: 1rem; font-weight: 600; color: var(--muted); }
 
 /* ---------- Week grid ---------- */
-.week-wrap { position: relative; min-height: 0; display: flex; }
+.week-wrap { position: relative; min-height: 0; display: flex; container: week / inline-size; }
+/* More days fit as the column widens (about 9.5rem a day, so the iPad keeps 4). */
+@container week (min-width: 48rem) { .week-wrap .week { --days: 5; } }
+@container week (min-width: 58rem) { .week-wrap .week { --days: 6; } }
+@container week (min-width: 68rem) { .week-wrap .week { --days: 7; } }
 .week {
   --days: 4; --gap: .45rem;
   flex: 1; display: grid; grid-auto-flow: column; gap: var(--gap); min-height: 0;
@@ -536,10 +542,26 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 
 /* ================================================================ M12 views (wall)
    #app.view-week (home) | .view-people | .view-sched. The bottom strip stays the same. */
-.alt { display: none; min-height: 0; }
+.alt { display: none; min-height: 0; container: alt / inline-size; }
 #app.view-people .main, #app.view-todos .main, #app.view-sched .main { grid-template-columns: minmax(0, 1fr); }
 #app.view-people .now-wrap, #app.view-people .week-wrap, #app.view-todos .now-wrap, #app.view-todos .week-wrap, #app.view-sched .now-wrap, #app.view-sched .week-wrap { display: none; }
 #app.view-people .alt, #app.view-todos .alt, #app.view-sched .alt { display: flex; }
+/* Wide screens, Calendar view: to-dos as a third column (placeTodos() in app.js moves the strip into .main).
+   Today keeps about its iPad width; the week gets the rest. */
+#app.todo-col .main { grid-template-columns: minmax(22rem, 32fr) minmax(0, 68fr) 18rem; }
+#app.todo-col .todos-wrap { display: flex; flex-direction: column; min-height: 0; }
+#app.todo-col .todos {
+  flex: 1; flex-direction: column; min-height: 0; overflow-x: hidden; overflow-y: auto;
+  padding: 0 0 2.5rem; scroll-snap-type: y proximity;
+}
+#app.todo-col .todos-h { align-self: start; padding: .2rem .1rem; }
+#app.todo-col .todo { max-width: none; }
+#app.todo-col .todo .ti { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+#app.todo-col .todos-wrap::after {
+  content: '⌄'; top: auto; left: 0; right: 0; width: auto; height: 3rem; place-items: end center;
+  background: linear-gradient(to bottom, transparent, var(--bg) 70%);
+}
+#app.todo-col .todos-wrap.at-end::after { content: none; }
 #app.view-todos .todos-wrap { display: none; }  /* the view is the to-do list: no strip (chips and Add stay put) */
 
 
@@ -597,8 +619,13 @@ html:has(body.is-phone) { font-size: 16px; height: auto; }
 /* rolling schedule */
 .sched {
   flex: 1; min-height: 0; display: grid; gap: 0 .4rem;
-  grid-template-columns: 3.4rem repeat(4, minmax(0, 1fr)); grid-template-rows: auto minmax(0, 1fr);
+  --sdays: 4; grid-template-columns: 3.4rem repeat(var(--sdays), minmax(0, 1fr)); grid-template-rows: auto minmax(0, 1fr);
 }
+/* Seven days are rendered; wider screens show more of them (about 15rem a day, so the iPad keeps 4). */
+.sched .sc-n5, .sched .sc-n6, .sched .sc-n7 { display: none; }
+@container alt (min-width: 80rem) { .sched { --sdays: 5; } .sched .sc-h.sc-n5 { display: flex; } .sched .sc-col.sc-n5 { display: block; } }
+@container alt (min-width: 95rem) { .sched { --sdays: 6; } .sched .sc-h.sc-n6 { display: flex; } .sched .sc-col.sc-n6 { display: block; } }
+@container alt (min-width: 110rem) { .sched { --sdays: 7; } .sched .sc-h.sc-n7 { display: flex; } .sched .sc-col.sc-n7 { display: block; } }
 .sc-corner { grid-row: 1; grid-column: 1; }
 .sc-h { grid-row: 1; display: flex; flex-direction: column; gap: .3rem; padding-bottom: .4rem; min-width: 0; }
 .sc-dh { display: flex; align-items: baseline; flex-wrap: wrap; gap: .1rem .45rem; padding: .3rem .5rem; border-radius: .5rem; background: var(--surface); text-align: left; width: 100%; }

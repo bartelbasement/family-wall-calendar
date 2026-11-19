@@ -274,6 +274,7 @@ function renderWall(items, ctx, snap) {
   setHtml($('#banner'), bannerHtml(items, 'all')); // alerts matter to everyone: ignore the filter
   const app = $('#app');
   VIEWS.forEach((v) => app.classList.toggle('view-' + v, ui.view === v));
+  placeTodos();
   // #alt and #now hold their own scrolling lists (people columns, Today), and
   // #now changes every minute with the clock: keep those lists in place.
   if (ui.view === 'people') setKeep($('#alt'), peopleHtml(items, ui.filter, ctx, snap.people || []));
@@ -381,8 +382,22 @@ function setKeep(el, html) { return keepScroll(el, () => setHtml(el, html)); }
 function updateHints() {
   for (const [stripSel, wrapSel] of [['#week', '#week-wrap'], ['#todos', '#todos-wrap']]) {
     const el = $(stripSel);
-    $(wrapSel).classList.toggle('at-end', el.scrollLeft + el.clientWidth >= el.scrollWidth - 4);
+    $(wrapSel).classList.toggle('at-end', el.scrollLeft + el.clientWidth >= el.scrollWidth - 4
+      && el.scrollTop + el.clientHeight >= el.scrollHeight - 4);
   }
+}
+
+/** Wide screens (monitors), Calendar view only: the to-do strip becomes a third
+ *  column beside the week. Other views keep it in the bottom bar. The iPad
+ *  (about 69rem wide) never qualifies. */
+function placeTodos() {
+  const TODO_COL_REM = 85;
+  const app = $('#app'), wrap = $('#todos-wrap');
+  const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  const col = ui.view === 'week' && !document.body.classList.contains('is-phone') && app.clientWidth / rem >= TODO_COL_REM;
+  app.classList.toggle('todo-col', col);
+  const home = col ? $('.main') : $('.bottom');
+  if (wrap.parentElement !== home) home.insertBefore(wrap, col ? null : home.firstChild);
 }
 for (const sel of ['#week', '#todos']) {
   const el = $(sel);
@@ -397,6 +412,7 @@ for (const sel of ['#week', '#todos']) {
 // Rotating across the phone/tablet line switches layouts. Mobile browsers can fire
 // resize/orientationchange before the new size applies, so check again shortly after.
 function checkLayout() {
+  if (!isPhone()) placeTodos();
   updateHints();
   if (isPhone() !== document.body.classList.contains('is-phone')) render();
 }
